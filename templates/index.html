@@ -24,7 +24,7 @@
                 <h3>Bulk Actions</h3>
                 <div class="input-group">
                     <button onclick="refreshAllTracking()" id="refreshAllBtn" class="btn-refresh-all">🔄 Update All Parcels</button>
-                    <button onclick="exportOrders()" class="btn-export">📥 Export Orders</button>
+                    <button onclick="exportOrders()" class="btn-export">💾 Export Orders</button>
                     <button onclick="openImportModal()" class="btn-import-modal">📥 Import Orders from AliExpress</button>
                     <span id="refreshAllStatus" style="margin-left: 10px; color: #666; font-size: 14px;"></span>
                 </div>
@@ -205,6 +205,7 @@
                     <li>Open your browser's Developer Tools (F12 or right-click → Inspect)</li>
                     <li>Go to the Network tab</li>
                     <li>Visit <a href="https://www.aliexpress.com/p/order/index.html" target="_blank">your AliExpress orders page</a></li>
+                    <li>Click on the "Shipped" tab (Optional)</li>
                     <li>Find a request to <code>mtop.aliexpress.trade.buyer.order.list</code></li>
                     <li>Right-click the request → Copy → Copy as cURL</li>
                     <li>Paste the cURL command below and click "Import Orders"</li>
