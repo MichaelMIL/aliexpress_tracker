@@ -300,6 +300,11 @@ function displayOrders(orders) {
                         <div>
                             <div class="product-title">
                                 <a href="${order.product_url}" target="_blank">${order.product_title}</a>
+                                ${order.sub_items && order.sub_items.length > 0 ? `
+                                    <button onclick="showSubItems(${order.id})" class="btn-sub-items" title="View ${order.sub_items.length} item(s) in this order">
+                                        📦 ${order.sub_items.length} item${order.sub_items.length > 1 ? 's' : ''}
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -630,6 +635,71 @@ function closeEventsModal() {
     document.getElementById('eventsModal').style.display = 'none';
 }
 
+function showSubItems(orderId) {
+    // Load current order data
+    fetch('/api/orders')
+        .then(res => res.json())
+        .then(data => {
+            const order = data.orders.find(o => o.id === orderId);
+            if (order && order.sub_items && order.sub_items.length > 0) {
+                const subItems = order.sub_items;
+                const modal = document.getElementById('subItemsModal');
+                const content = document.getElementById('subItemsContent');
+                
+                content.innerHTML = `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <p style="margin: 5px 0;"><strong>Order ID:</strong> ${order.order_id || 'N/A'}</p>
+                        <p style="margin: 5px 0;"><strong>Order Date:</strong> ${formatOrderDate(order.order_date, order.added_date)}</p>
+                        <p style="margin: 5px 0;"><strong>Total Items:</strong> ${subItems.length}</p>
+                        ${order.price ? `<p style="margin: 5px 0;"><strong>Total Price:</strong> ${order.price}</p>` : ''}
+                    </div>
+                    <div class="sub-items-grid">
+                        ${subItems.map((item, index) => {
+                            // Get image URL (use proxy if needed)
+                            let itemImage = item.product_image || 'https://via.placeholder.com/120';
+                            // If it's already a local path, use it directly
+                            if (itemImage && itemImage.startsWith('/static/images/products/')) {
+                                // Use local image as-is
+                            } else if (itemImage && (itemImage.includes('alicdn.com') || itemImage.includes('aliexpress-media.com'))) {
+                                // Use proxy for AliExpress CDN images
+                                itemImage = '/api/image-proxy?url=' + encodeURIComponent(itemImage) + (item.product_id ? '&product_id=' + encodeURIComponent(item.product_id) : '');
+                            } else if (itemImage && !itemImage.startsWith('http') && !itemImage.startsWith('/static')) {
+                                itemImage = 'https://via.placeholder.com/120';
+                            }
+                            
+                            return `
+                                <div class="sub-item-card">
+                                    <div class="sub-item-image">
+                                        <img src="${itemImage}" 
+                                             alt="${item.product_title}" 
+                                             onerror="this.src='https://via.placeholder.com/120'">
+                                    </div>
+                                    <div class="sub-item-info">
+                                        <h4><a href="${item.product_url}" target="_blank">${item.product_title}</a></h4>
+                                        <p class="sub-item-price">${item.price || 'N/A'}</p>
+                                        <p class="sub-item-id">Product ID: ${item.product_id}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
+                modal.style.display = 'flex';
+            } else {
+                alert('No sub-items found for this order');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading sub-items:', error);
+            alert('Error loading sub-items');
+        });
+}
+
+function closeSubItemsModal() {
+    document.getElementById('subItemsModal').style.display = 'none';
+}
+
 function handleImageError(img) {
     // Prevent infinite loop - only try fallback once
     if (img.dataset.fallbackTried === 'true') {
@@ -882,6 +952,10 @@ window.onclick = function(event) {
     }
     if (event.target === eventsModal) {
         closeEventsModal();
+    }
+    const subItemsModal = document.getElementById('subItemsModal');
+    if (event.target === subItemsModal) {
+        closeSubItemsModal();
     }
     if (event.target === importModal) {
         closeImportModal();

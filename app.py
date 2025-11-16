@@ -1426,8 +1426,9 @@ def parse_jsonp_response(jsonp_text):
         return None
 
 def extract_orders_from_api_response(api_data):
-    """Extract order information from AliExpress API response"""
-    orders_list = []
+    """Extract order information from AliExpress API response.
+    Groups multiple orderLines into a single order with sub_items."""
+    orders_dict = {}  # Key: order_id, Value: order data with sub_items
     
     try:
         # Navigate to data.data where orders are stored
@@ -1442,13 +1443,16 @@ def extract_orders_from_api_response(api_data):
                 
                 # Extract order lines (products in the order)
                 order_lines = fields.get('orderLines', [])
-                item_price_text = fields.get('totalPriceText', '')
+                
+                if not order_id:
+                    continue
                 
                 for line in order_lines:
                     product_id = line.get('productId', '')
                     item_title = line.get('itemTitle', '')
                     item_detail_url = line.get('itemDetailUrl', '')
                     item_img_url = line.get('itemImgUrl', '')
+                    item_price_text = line.get('itemPriceText', '')
                     
                     # Build full URL if it's relative
                     if item_detail_url and item_detail_url.startswith('//'):
@@ -1457,21 +1461,32 @@ def extract_orders_from_api_response(api_data):
                         item_detail_url = 'https://www.aliexpress.com' + item_detail_url
                     
                     if product_id and item_title:
-                        orders_list.append({
+                        # Initialize order if not exists
+                        if order_id not in orders_dict:
+                            orders_dict[order_id] = {
+                                'order_id': order_id,
+                                'order_date': order_date_text,
+                                'total_price': fields.get('totalPriceText', ''),
+                                'sub_items': []
+                            }
+                        
+                        orders_dict[order_id]['sub_items'].append({
                             'product_id': product_id,
                             'product_title': item_title,
                             'product_url': item_detail_url or f'https://www.aliexpress.com/item/{product_id}.html',
                             'product_image': item_img_url,
-                            'order_date': order_date_text,
-                            'order_id': order_id,
                             'price': item_price_text
                         })
+        
+        # Remove orders with no sub_items
+        orders_dict = {k: v for k, v in orders_dict.items() if v.get('sub_items')}
     except Exception as e:
         print(f"Error extracting orders: {e}")
         import traceback
         traceback.print_exc()
     
-    return orders_list
+    # Convert dict to list
+    return list(orders_dict.values())
 
 @app.route('/api/import/orders', methods=['POST'])
 def import_orders():
@@ -1546,11 +1561,16 @@ def import_orders():
         created_orders = []
         
         for order_data in extracted_orders:
-            # Check if order already exists (by product_id and order_id combination)
+            order_id = order_data.get('order_id', '')
+            sub_items = order_data.get('sub_items', [])
+            
+            if not order_id or not sub_items:
+                continue
+            
+            # Check if order already exists (by order_id)
             existing_order = next(
                 (o for o in orders 
-                 if o.get('product_id') == order_data['product_id'] 
-                 and o.get('order_id') == order_data.get('order_id', '')),
+                 if o.get('order_id') == order_id),
                 None
             )
             
@@ -1558,28 +1578,55 @@ def import_orders():
                 skipped_count += 1
                 continue
             
-            # Download and save image
+            # Use first sub-item as main order display (or combine titles if multiple)
+            first_item = sub_items[0]
+            if len(sub_items) > 1:
+                # Multiple items: use combined title
+                product_title = f"{first_item['product_title']} (+{len(sub_items) - 1} more)"
+            else:
+                product_title = first_item['product_title']
+            
+            # Download and save image for first item
             local_image_path = None
-            if order_data.get('product_image'):
+            if first_item.get('product_image'):
                 local_image_path = download_and_save_image(
-                    order_data['product_image'],
-                    order_data['product_id']
+                    first_item['product_image'],
+                    first_item['product_id']
                 )
             
-            # Create order object
+            # Download and save images for all sub-items
+            processed_sub_items = []
+            for sub_item in sub_items:
+                sub_image_path = None
+                if sub_item.get('product_image'):
+                    sub_image_path = download_and_save_image(
+                        sub_item['product_image'],
+                        sub_item['product_id']
+                    )
+                
+                processed_sub_items.append({
+                    'product_id': sub_item['product_id'],
+                    'product_title': sub_item['product_title'],
+                    'product_url': sub_item['product_url'],
+                    'product_image': sub_image_path or sub_item.get('product_image', ''),
+                    'price': sub_item.get('price', '')
+                })
+            
+            # Create order object with sub_items
             order = {
                 'id': get_next_order_id(),
-                'product_title': order_data['product_title'],
-                'product_image': local_image_path or order_data.get('product_image', ''),
-                'product_url': order_data['product_url'],
-                'product_id': order_data['product_id'],
+                'product_title': product_title,
+                'product_image': local_image_path or first_item.get('product_image', ''),
+                'product_url': first_item['product_url'],
+                'product_id': first_item['product_id'],  # Main product ID
                 'tracking_number': '',
                 'status': 'Pending',
                 'added_date': datetime.now().isoformat(),
                 'order_date': order_data.get('order_date', ''),
-                'order_id': order_data.get('order_id', ''),
+                'order_id': order_id,
                 'tracking_info': None,
-                'price': order_data.get('price', '')  # Store price in order
+                'price': order_data.get('total_price', ''),  # Use total price for the order
+                'sub_items': processed_sub_items  # Add sub-items array
             }
             
             orders.append(order)
@@ -1587,7 +1634,8 @@ def import_orders():
                 'product_title': order['product_title'],
                 'product_id': order['product_id'],
                 'order_date': order.get('order_date', ''),
-                'price': order.get('price', '')
+                'price': order.get('price', ''),
+                'sub_items_count': len(processed_sub_items)
             })
             imported_count += 1
         
