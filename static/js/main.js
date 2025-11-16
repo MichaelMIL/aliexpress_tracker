@@ -18,12 +18,93 @@ async function loadOrders() {
         const response = await fetch('/api/orders');
         const data = await response.json();
         allOrders = data.orders; // Store all orders
+        updateTotalOrdersCount(); // Update total counter
         applyFilters(); // Apply current filters
     } catch (error) {
         console.error('Error loading orders:', error);
     } finally {
         isLoadingOrders = false;
     }
+}
+
+function updateTotalOrdersCount() {
+    const totalCountElement = document.getElementById('totalOrdersCount');
+    if (totalCountElement) {
+        totalCountElement.textContent = allOrders.length;
+    }
+}
+
+function parsePrice(priceString) {
+    if (!priceString) return null;
+    
+    // Extract numeric value from price string
+    // Handles formats like: "US $42.57", "$42.57", "42.57", "US $42|42|57", etc.
+    const match = priceString.match(/[\d,]+\.?\d*/);
+    if (match) {
+        // Remove commas and convert to number
+        return parseFloat(match[0].replace(/,/g, ''));
+    }
+    return null;
+}
+
+function comparePrices(priceA, priceB, ascending) {
+    const numA = parsePrice(priceA);
+    const numB = parsePrice(priceB);
+    
+    // Put orders without prices at the end
+    if (numA === null && numB === null) return 0;
+    if (numA === null) return 1;
+    if (numB === null) return -1;
+    
+    // Compare numeric values
+    const diff = numA - numB;
+    return ascending ? diff : -diff;
+}
+
+function formatOrderDate(orderDate, addedDate) {
+    if (orderDate) {
+        // If it's already in a readable format like "Nov 11, 2025", use it as-is
+        if (orderDate.includes(',') || orderDate.match(/[A-Za-z]{3}/)) {
+            return orderDate;
+        }
+        // If it's in ISO format or date-only format, format it nicely
+        try {
+            const date = new Date(orderDate);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            }
+        } catch (e) {
+            // If parsing fails, return as-is
+            return orderDate;
+        }
+        return orderDate;
+    }
+    
+    // Fallback to added_date
+    if (addedDate) {
+        try {
+            const date = new Date(addedDate);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            }
+        } catch (e) {
+            // If parsing fails, try to extract date part
+            if (addedDate.includes('T')) {
+                return addedDate.split('T')[0];
+            }
+            return addedDate;
+        }
+    }
+    
+    return 'N/A';
 }
 
 function applyFilters() {
@@ -36,16 +117,6 @@ function applyFilters() {
             const trackingInfo = order.tracking_info || {};
             const status = trackingInfo.status || order.status || 'Pending';
             return status.toLowerCase() === statusFilter.toLowerCase();
-        });
-    }
-    
-    // Filter out delivered orders if checkbox is checked
-    const hideDelivered = document.getElementById('hideDelivered').checked;
-    if (hideDelivered) {
-        filtered = filtered.filter(order => {
-            const trackingInfo = order.tracking_info || {};
-            const status = trackingInfo.status || order.status || 'Pending';
-            return status.toLowerCase() !== 'delivered';
         });
     }
     
@@ -112,6 +183,10 @@ function applyFilters() {
                 if (!aTrackingDesc) return 1;
                 if (!bTrackingDesc) return -1;
                 return bTrackingDesc.localeCompare(aTrackingDesc);
+            case 'price_asc':
+                return comparePrices(a.price, b.price, true);
+            case 'price_desc':
+                return comparePrices(a.price, b.price, false);
             case 'status_asc':
                 const aStatus = ((a.tracking_info || {}).status || a.status || 'Pending').toLowerCase();
                 const bStatus = ((b.tracking_info || {}).status || b.status || 'Pending').toLowerCase();
@@ -136,7 +211,6 @@ function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('sortBy').value = 'added_date_desc';
     document.getElementById('searchFilter').value = '';
-    document.getElementById('hideDelivered').checked = false;
     applyFilters();
 }
 
@@ -155,7 +229,7 @@ function displayOrders(orders) {
             
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="empty-state">
+                    <td colspan="9" class="empty-state">
                         <div>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
@@ -231,6 +305,11 @@ function displayOrders(orders) {
                     </div>
                 </td>
                 <td>
+                    <div class="price-cell">
+                        ${order.price ? `<span class="price-text">${order.price}</span>` : '<span class="no-price">N/A</span>'}
+                    </div>
+                </td>
+                <td>
                     <div class="tracking-cell">
                         ${hasTracking ? `
                             <span class="tracking-number">${order.tracking_number}</span>
@@ -252,7 +331,7 @@ function displayOrders(orders) {
                 </td>
                 <td>
                     <div class="order-date-cell">
-                        ${order.order_date ? (order.order_date.includes(' ') ? order.order_date.split(' ')[0] : order.order_date) : (order.added_date ? order.added_date.split('T')[0] : 'N/A')}
+                        ${formatOrderDate(order.order_date, order.added_date)}
                     </div>
                 </td>
                 <td>
@@ -293,6 +372,23 @@ function openAddOrderModal() {
 function closeAddOrderModal() {
     document.getElementById('addOrderModal').style.display = 'none';
     document.getElementById('addOrderAlert').innerHTML = '';
+}
+
+function openImportModal() {
+    const modal = document.getElementById('importModal');
+    modal.style.display = 'flex';
+    // Clear previous values
+    document.getElementById('curlCommand').value = '';
+    document.getElementById('importAlert').innerHTML = '';
+    document.getElementById('importResults').style.display = 'none';
+    // Focus on textarea
+    setTimeout(() => document.getElementById('curlCommand').focus(), 100);
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').style.display = 'none';
+    document.getElementById('importAlert').innerHTML = '';
+    document.getElementById('importResults').style.display = 'none';
 }
 
 async function addOrder() {
@@ -702,11 +798,82 @@ function exportOrders() {
     }, 3000);
 }
 
+async function importOrders() {
+    const curlCommand = document.getElementById('curlCommand').value.trim();
+    const importBtn = document.getElementById('importBtn');
+    const alertContainer = document.getElementById('importAlert');
+    const resultsSection = document.getElementById('importResults');
+    const resultsContent = document.getElementById('importResultsContent');
+
+    if (!curlCommand) {
+        alertContainer.innerHTML = '<div class="alert alert-error">Please paste a cURL command</div>';
+        return;
+    }
+
+    // Disable button and show loading
+    importBtn.disabled = true;
+    importBtn.textContent = 'Importing...';
+    resultsSection.style.display = 'none';
+    alertContainer.innerHTML = '';
+
+    try {
+        const response = await fetch('/api/import/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ curl_command: curlCommand })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to import orders');
+        }
+
+        if (data.success) {
+            alertContainer.innerHTML = `<div class="alert alert-success">Successfully imported ${data.imported} order(s)!</div>`;
+            
+            if (data.orders && data.orders.length > 0) {
+                resultsSection.style.display = 'block';
+                resultsContent.innerHTML = '<h4>Imported Orders:</h4>';
+                data.orders.forEach(order => {
+                    const orderDiv = document.createElement('div');
+                    orderDiv.className = 'order-preview';
+                    orderDiv.style.cssText = 'background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 4px; border-left: 3px solid #007bff;';
+                    orderDiv.innerHTML = `
+                        <h4 style="margin: 0 0 10px 0; color: #333;">${order.product_title || 'Unknown Product'}</h4>
+                        <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>Product ID:</strong> ${order.product_id || 'N/A'}</p>
+                        <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>Order Date:</strong> ${order.order_date || 'N/A'}</p>
+                        <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>Price:</strong> ${order.price || 'N/A'}</p>
+                    `;
+                    resultsContent.appendChild(orderDiv);
+                });
+            }
+
+            // Reload orders and close modal after 2 seconds
+            setTimeout(async () => {
+                await loadOrders();
+                closeImportModal();
+            }, 2000);
+        } else {
+            alertContainer.innerHTML = `<div class="alert alert-info">${data.message || 'No orders were imported'}</div>`;
+        }
+    } catch (error) {
+        console.error('Import error:', error);
+        alertContainer.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`;
+    } finally {
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import Orders';
+    }
+}
+
 // Close modal when clicking outside
 window.onclick = function(event) {
     const addOrderModal = document.getElementById('addOrderModal');
     const editModal = document.getElementById('editModal');
     const eventsModal = document.getElementById('eventsModal');
+    const importModal = document.getElementById('importModal');
     if (event.target === addOrderModal) {
         closeAddOrderModal();
     }
@@ -715,6 +882,9 @@ window.onclick = function(event) {
     }
     if (event.target === eventsModal) {
         closeEventsModal();
+    }
+    if (event.target === importModal) {
+        closeImportModal();
     }
 }
 

@@ -745,6 +745,23 @@ code {
     line-height: 1.5;
 }
 
+.price-cell {
+    font-size: 14px;
+    color: #333;
+    min-width: 100px;
+}
+
+.price-text {
+    font-weight: 600;
+    color: #28a745;
+}
+
+.no-price {
+    color: #999;
+    font-style: italic;
+    font-size: 12px;
+}
+
 .order-date-cell {
     font-size: 13px;
     color: #333;
@@ -800,6 +817,24 @@ code {
 }
 
 .btn-export:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-import-modal {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-import-modal:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }

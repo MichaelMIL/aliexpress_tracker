@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Orders from AliExpress</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .import-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .import-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .import-header h1 {
+            margin-bottom: 10px;
+        }
+        .instructions {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+        .form-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-import {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-import:hover {
+            background: #0056b3;
+        }
+        .btn-import:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-back {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .btn-back:hover {
+            background: #5a6268;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .results-section {
+            margin-top: 20px;
+        }
+        .order-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+        .order-preview h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .order-preview p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="import-container">
+        <a href="/" class="btn-back">← Back to Orders</a>
+        
+        <div class="import-header">
+            <h1>📦 Import Orders from AliExpress</h1>
+            <p>Automatically load your orders from AliExpress</p>
+        </div>
+
+        <div class="instructions">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Open your browser's Developer Tools (F12 or right-click → Inspect)</li>
+                <li>Go to the Network tab</li>
+                <li>Visit <a href="https://www.aliexpress.com/p/order/list.html" target="_blank">your AliExpress orders page</a></li>
+                <li>Find a request to <code>mtop.aliexpress.trade.buyer.order.list</code></li>
+                <li>Right-click the request → Copy → Copy as cURL</li>
+                <li>Paste the cURL command below and click "Import Orders"</li>
+            </ol>
+            <p><strong>Note:</strong> The cURL command must include your authentication cookies to work.</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="form-section">
+            <div class="form-group">
+                <label for="curlCommand">Paste cURL Command:</label>
+                <textarea id="curlCommand" placeholder="curl 'https://acs.aliexpress.com/h5/mtop.aliexpress.trade.buyer.order.list/1.0/...' ..."></textarea>
+            </div>
+            <button onclick="importOrders()" id="importBtn" class="btn-import">Import Orders</button>
+        </div>
+
+        <div id="resultsSection" class="results-section" style="display: none;">
+            <div class="form-section">
+                <h3>Import Results</h3>
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function importOrders() {
+            const curlCommand = document.getElementById('curlCommand').value.trim();
+            const importBtn = document.getElementById('importBtn');
+            const alertContainer = document.getElementById('alertContainer');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+
+            if (!curlCommand) {
+                showAlert('Please paste a cURL command', 'error');
+                return;
+            }
+
+            // Disable button and show loading
+            importBtn.disabled = true;
+            importBtn.textContent = 'Importing...';
+            resultsSection.style.display = 'none';
+            alertContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/import/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ curl_command: curlCommand })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to import orders');
+                }
+
+                if (data.success) {
+                    showAlert(`Successfully imported ${data.imported} order(s)!`, 'success');
+                    
+                    if (data.orders && data.orders.length > 0) {
+                        resultsSection.style.display = 'block';
+                        resultsContent.innerHTML = '<h4>Imported Orders:</h4>';
+                        data.orders.forEach(order => {
+                            const orderDiv = document.createElement('div');
+                            orderDiv.className = 'order-preview';
+                            orderDiv.innerHTML = `
+                                <h4>${order.product_title || 'Unknown Product'}</h4>
+                                <p><strong>Product ID:</strong> ${order.product_id || 'N/A'}</p>
+                                <p><strong>Order Date:</strong> ${order.order_date || 'N/A'}</p>
+                                <p><strong>Price:</strong> ${order.price || 'N/A'}</p>
+                            `;
+                            resultsContent.appendChild(orderDiv);
+                        });
+                    }
+
+                    // Redirect to main page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    showAlert(data.message || 'No orders were imported', 'info');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showAlert('Error: ' + error.message, 'error');
+            } finally {
+                importBtn.disabled = false;
+                importBtn.textContent = 'Import Orders';
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alertDiv);
+        }
+    </script>
+</body>
+</html>
+

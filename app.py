@@ -1107,6 +1107,10 @@ def favicon():
 def index():
     return render_template('index.html')
 
+@app.route('/import')
+def import_page():
+    return render_template('import.html')
+
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
     """Get all orders"""
@@ -1261,8 +1265,10 @@ def refresh_all_tracking():
         for o in orders:
             if o.get('tracking_number') and o.get('tracking_number').strip():
                 # Check if order is already delivered
-                tracking_info = o.get('tracking_info', {})
-                status = tracking_info.get('status', '') or o.get('status', '')
+                tracking_info = o.get('tracking_info') or {}
+                status = tracking_info.get('status', '') if isinstance(tracking_info, dict) else ''
+                if not status:
+                    status = o.get('status', '')
                 status_lower = status.lower() if status else ''
                 
                 # Skip if status is "delivered" (case-insensitive)
@@ -1350,6 +1356,257 @@ def refresh_all_tracking():
         import traceback
         error_trace = traceback.format_exc()
         print(f"Error refreshing all tracking: {error_trace}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+def parse_curl_command(curl_command):
+    """Parse a cURL command to extract URL, headers, cookies, and POST data"""
+    url = None
+    headers = {}
+    cookies = {}
+    post_data = None
+    method = 'GET'
+    
+    # Normalize: remove line breaks and extra spaces, but preserve quoted strings
+    # Replace newlines with spaces, but be careful with quoted strings
+    normalized = re.sub(r'\s+', ' ', curl_command)
+    
+    # Check if it's a POST request
+    if re.search(r'-X\s+POST', normalized) or re.search(r'--data', normalized):
+        method = 'POST'
+    
+    # Extract URL (first quoted string after 'curl')
+    url_match = re.search(r"curl\s+['\"]([^'\"]+)['\"]", normalized)
+    if url_match:
+        url = url_match.group(1)
+    
+    # Extract headers (-H 'Header: Value' or -H "Header: Value")
+    # Handle both single and double quotes, and multiline
+    header_pattern = r"-H\s+['\"]([^:]+):\s*([^'\"]+)['\"]"
+    for match in re.finditer(header_pattern, normalized):
+        header_name = match.group(1).strip()
+        header_value = match.group(2).strip()
+        headers[header_name] = header_value
+    
+    # Extract POST data from --data-raw or --data
+    data_raw_match = re.search(r"--data-raw\s+['\"]([^'\"]+)['\"]", normalized)
+    if data_raw_match:
+        post_data = data_raw_match.group(1)
+    else:
+        # Try --data as fallback
+        data_match = re.search(r"--data\s+['\"]([^'\"]+)['\"]", normalized)
+        if data_match:
+            post_data = data_match.group(1)
+    
+    # Extract cookies from Cookie header
+    if 'Cookie' in headers:
+        cookie_string = headers['Cookie']
+        for cookie_pair in cookie_string.split(';'):
+            if '=' in cookie_pair:
+                key, value = cookie_pair.split('=', 1)
+                cookies[key.strip()] = value.strip()
+    
+    return url, headers, cookies, method, post_data
+
+def parse_jsonp_response(jsonp_text):
+    """Parse JSONP response and extract JSON data"""
+    # Remove JSONP wrapper (e.g., mtopjsonp2({...}))
+    jsonp_match = re.search(r'^[^(]+\((.+)\);?\s*$', jsonp_text, re.DOTALL)
+    if jsonp_match:
+        json_text = jsonp_match.group(1)
+    else:
+        json_text = jsonp_text
+    
+    try:
+        return json.loads(json_text)
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        return None
+
+def extract_orders_from_api_response(api_data):
+    """Extract order information from AliExpress API response"""
+    orders_list = []
+    
+    try:
+        # Navigate to data.data where orders are stored
+        data_section = api_data.get('data', {}).get('data', {})
+        
+        # Find all order entries (keys starting with 'pc_om_list_order_')
+        for key, order_data in data_section.items():
+            if key.startswith('pc_om_list_order_') and isinstance(order_data, dict):
+                fields = order_data.get('fields', {})
+                order_id = fields.get('orderId', '')
+                order_date_text = fields.get('orderDateText', '')
+                
+                # Extract order lines (products in the order)
+                order_lines = fields.get('orderLines', [])
+                item_price_text = fields.get('totalPriceText', '')
+                
+                for line in order_lines:
+                    product_id = line.get('productId', '')
+                    item_title = line.get('itemTitle', '')
+                    item_detail_url = line.get('itemDetailUrl', '')
+                    item_img_url = line.get('itemImgUrl', '')
+                    
+                    # Build full URL if it's relative
+                    if item_detail_url and item_detail_url.startswith('//'):
+                        item_detail_url = 'https:' + item_detail_url
+                    elif item_detail_url and not item_detail_url.startswith('http'):
+                        item_detail_url = 'https://www.aliexpress.com' + item_detail_url
+                    
+                    if product_id and item_title:
+                        orders_list.append({
+                            'product_id': product_id,
+                            'product_title': item_title,
+                            'product_url': item_detail_url or f'https://www.aliexpress.com/item/{product_id}.html',
+                            'product_image': item_img_url,
+                            'order_date': order_date_text,
+                            'order_id': order_id,
+                            'price': item_price_text
+                        })
+    except Exception as e:
+        print(f"Error extracting orders: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return orders_list
+
+@app.route('/api/import/orders', methods=['POST'])
+def import_orders():
+    """Import orders from AliExpress API using a cURL command"""
+    try:
+        data = request.json
+        curl_command = data.get('curl_command', '')
+        
+        if not curl_command:
+            return jsonify({'success': False, 'error': 'cURL command is required'}), 400
+        
+        # Parse cURL command
+        url, headers, cookies, method, post_data = parse_curl_command(curl_command)
+        
+        if not url:
+            return jsonify({'success': False, 'error': 'Could not extract URL from cURL command'}), 400
+        
+        # Make the API request
+        print(f"Fetching orders from: {url[:100]}... (method: {method})")
+        if method == 'POST' and post_data:
+            # For POST requests, send data as form-encoded
+            response = requests.post(url, headers=headers, cookies=cookies, data=post_data, timeout=30)
+        else:
+            response = requests.get(url, headers=headers, cookies=cookies, timeout=30)
+        
+        if response.status_code != 200:
+            return jsonify({
+                'success': False,
+                'error': f'API request failed with status {response.status_code}: {response.text[:200]}'
+            }), 400
+        
+        # Parse response (could be JSONP or JSON)
+        api_data = parse_jsonp_response(response.text)
+        
+        # If JSONP parsing failed, try direct JSON parsing
+        if not api_data:
+            try:
+                api_data = json.loads(response.text)
+            except json.JSONDecodeError:
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to parse API response (neither JSONP nor JSON)'
+                }), 400
+        
+        if not api_data:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to parse API response'
+            }), 400
+        
+        # Check for API errors
+        ret = api_data.get('ret', [])
+        if ret and not any('SUCCESS' in r for r in ret):
+            return jsonify({
+                'success': False,
+                'error': f'API returned error: {ret}'
+            }), 400
+        
+        # Extract orders from response
+        extracted_orders = extract_orders_from_api_response(api_data)
+        
+        if not extracted_orders:
+            return jsonify({
+                'success': True,
+                'imported': 0,
+                'message': 'No orders found in the response'
+            })
+        
+        # Create orders in the system
+        imported_count = 0
+        skipped_count = 0
+        created_orders = []
+        
+        for order_data in extracted_orders:
+            # Check if order already exists (by product_id and order_id combination)
+            existing_order = next(
+                (o for o in orders 
+                 if o.get('product_id') == order_data['product_id'] 
+                 and o.get('order_id') == order_data.get('order_id', '')),
+                None
+            )
+            
+            if existing_order:
+                skipped_count += 1
+                continue
+            
+            # Download and save image
+            local_image_path = None
+            if order_data.get('product_image'):
+                local_image_path = download_and_save_image(
+                    order_data['product_image'],
+                    order_data['product_id']
+                )
+            
+            # Create order object
+            order = {
+                'id': get_next_order_id(),
+                'product_title': order_data['product_title'],
+                'product_image': local_image_path or order_data.get('product_image', ''),
+                'product_url': order_data['product_url'],
+                'product_id': order_data['product_id'],
+                'tracking_number': '',
+                'status': 'Pending',
+                'added_date': datetime.now().isoformat(),
+                'order_date': order_data.get('order_date', ''),
+                'order_id': order_data.get('order_id', ''),
+                'tracking_info': None,
+                'price': order_data.get('price', '')  # Store price in order
+            }
+            
+            orders.append(order)
+            created_orders.append({
+                'product_title': order['product_title'],
+                'product_id': order['product_id'],
+                'order_date': order.get('order_date', ''),
+                'price': order.get('price', '')
+            })
+            imported_count += 1
+        
+        # Save orders to file
+        if imported_count > 0:
+            save_orders()
+        
+        return jsonify({
+            'success': True,
+            'imported': imported_count,
+            'skipped': skipped_count,
+            'total_found': len(extracted_orders),
+            'orders': created_orders
+        })
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error importing orders: {error_trace}")
         return jsonify({
             'success': False,
             'error': str(e)
