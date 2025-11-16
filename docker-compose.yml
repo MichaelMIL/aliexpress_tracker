@@ -5,7 +5,7 @@ services:
     build: .
     container_name: aliexpress_tracker
     ports:
-      - "8000:8000"
+      - "8004:8004"
     volumes:
       # Persist orders data
       - ./orders.json:/app/orders.json

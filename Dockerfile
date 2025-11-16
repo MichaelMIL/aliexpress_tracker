@@ -20,7 +20,7 @@ COPY . .
 RUN mkdir -p static/images/products
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8004
 
 # Run the application
 CMD ["python", "app.py"]
