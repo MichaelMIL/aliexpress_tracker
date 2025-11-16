@@ -15,6 +15,7 @@ instance/
 
 # Orders data
 orders.json
+orders copy*.json
 static/images/products/
 
 # IDE
