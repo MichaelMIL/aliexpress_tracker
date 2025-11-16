@@ -39,6 +39,16 @@ function applyFilters() {
         });
     }
     
+    // Filter out delivered orders if checkbox is checked
+    const hideDelivered = document.getElementById('hideDelivered').checked;
+    if (hideDelivered) {
+        filtered = filtered.filter(order => {
+            const trackingInfo = order.tracking_info || {};
+            const status = trackingInfo.status || order.status || 'Pending';
+            return status.toLowerCase() !== 'delivered';
+        });
+    }
+    
     // Filter by search text
     const searchText = document.getElementById('searchFilter').value.toLowerCase().trim();
     if (searchText) {
@@ -126,6 +136,7 @@ function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('sortBy').value = 'added_date_desc';
     document.getElementById('searchFilter').value = '';
+    document.getElementById('hideDelivered').checked = false;
     applyFilters();
 }
 

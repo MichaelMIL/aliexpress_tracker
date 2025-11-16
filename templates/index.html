@@ -58,6 +58,12 @@
                     <input type="text" id="searchFilter" placeholder="Product name, tracking number..." oninput="applyFilters()">
                 </div>
                 <div class="filter-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="hideDelivered" onchange="applyFilters()" style="width: auto; min-width: auto; cursor: pointer;">
+                        <span>Hide Delivered</span>
+                    </label>
+                </div>
+                <div class="filter-group">
                     <button onclick="clearFilters()" class="btn-clear">Clear Filters</button>
                 </div>
             </div>
