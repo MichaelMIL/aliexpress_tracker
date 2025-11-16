@@ -5,6 +5,7 @@ from datetime import datetime
 from models.order import orders, save_orders, get_next_order_id
 from utils.images import download_and_save_image
 from utils.curl_parser import parse_curl_command, parse_jsonp_response, extract_orders_from_api_response
+from utils.url_creator import fetch_tracking_number_from_order
 
 import_bp = Blueprint('import', __name__)
 
@@ -75,10 +76,19 @@ def import_orders():
                 'message': 'No orders found in the response'
             })
         
+        # Extract cookie string from headers for tracking number fetching
+        # Try to get from Cookie header first, otherwise reconstruct from cookies dict
+        cookie_string = headers.get('Cookie', '')
+        if not cookie_string and cookies:
+            # Reconstruct cookie string from cookies dict
+            cookie_pairs = [f"{key}={value}" for key, value in cookies.items()]
+            cookie_string = '; '.join(cookie_pairs)
+        
         # Create orders in the system
         imported_count = 0
         skipped_count = 0
         created_orders = []
+        tracking_fetched_count = 0
         
         for order_data in extracted_orders:
             order_id = order_data.get('order_id', '')
@@ -131,6 +141,20 @@ def import_orders():
                     'price': sub_item.get('price', '')
                 })
             
+            # Fetch tracking number using url_creator
+            tracking_number = ''
+            if cookie_string and order_id:
+                print(f"Fetching tracking number for order {order_id}...")
+                try:
+                    tracking_number = fetch_tracking_number_from_order(cookie_string, order_id)
+                    if tracking_number:
+                        print(f"Found tracking number: {tracking_number} for order {order_id}")
+                        tracking_fetched_count += 1
+                    else:
+                        print(f"No tracking number found for order {order_id}")
+                except Exception as e:
+                    print(f"Error fetching tracking number for order {order_id}: {e}")
+            
             # Create order object with sub_items
             order = {
                 'id': get_next_order_id(),
@@ -138,7 +162,7 @@ def import_orders():
                 'product_image': local_image_path or first_item.get('product_image', ''),
                 'product_url': first_item['product_url'],
                 'product_id': first_item['product_id'],
-                'tracking_number': '',
+                'tracking_number': tracking_number,
                 'status': 'Pending',
                 'added_date': datetime.now().isoformat(),
                 'order_date': order_data.get('order_date', ''),
@@ -154,7 +178,8 @@ def import_orders():
                 'product_id': order['product_id'],
                 'order_date': order.get('order_date', ''),
                 'price': order.get('price', ''),
-                'sub_items_count': len(processed_sub_items)
+                'sub_items_count': len(processed_sub_items),
+                'tracking_number': tracking_number if tracking_number else None
             })
             imported_count += 1
         
@@ -167,6 +192,7 @@ def import_orders():
             'imported': imported_count,
             'skipped': skipped_count,
             'total_found': len(extracted_orders),
+            'tracking_fetched': tracking_fetched_count,
             'orders': created_orders
         })
         
