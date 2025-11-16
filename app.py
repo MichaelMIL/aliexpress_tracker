@@ -1251,16 +1251,34 @@ def refresh_tracking(order_id):
 
 @app.route('/api/orders/refresh-all', methods=['POST'])
 def refresh_all_tracking():
-    """Refresh tracking information for all orders with tracking numbers using bulk API call"""
+    """Refresh tracking information for all orders with tracking numbers using bulk API call.
+    Skips orders that are already in 'delivered' status."""
     try:
-        orders_with_tracking = [o for o in orders if o.get('tracking_number') and o.get('tracking_number').strip()]
+        # Filter orders: must have tracking number and not be delivered
+        orders_with_tracking = []
+        skipped_delivered = 0
+        
+        for o in orders:
+            if o.get('tracking_number') and o.get('tracking_number').strip():
+                # Check if order is already delivered
+                tracking_info = o.get('tracking_info', {})
+                status = tracking_info.get('status', '') or o.get('status', '')
+                status_lower = status.lower() if status else ''
+                
+                # Skip if status is "delivered" (case-insensitive)
+                if status_lower == 'delivered':
+                    skipped_delivered += 1
+                    continue
+                
+                orders_with_tracking.append(o)
         
         if not orders_with_tracking:
             return jsonify({
                 'success': True,
                 'updated': 0,
                 'total': 0,
-                'message': 'No orders with tracking numbers found'
+                'skipped': skipped_delivered,
+                'message': f'No orders to update. {skipped_delivered} delivered orders skipped.' if skipped_delivered > 0 else 'No orders with tracking numbers found'
             })
         
         # Collect all tracking numbers
@@ -1313,15 +1331,20 @@ def refresh_all_tracking():
         
         save_orders()
         
-        print(f"Bulk update completed: {updated} updated, {failed} failed out of {len(orders_with_tracking)} total")
+        print(f"Bulk update completed: {updated} updated, {failed} failed out of {len(orders_with_tracking)} total, {skipped_delivered} delivered orders skipped")
+        
+        message = f'Updated {updated} out of {len(orders_with_tracking)} orders'
+        if skipped_delivered > 0:
+            message += f' ({skipped_delivered} delivered orders skipped)'
         
         return jsonify({
             'success': True,
             'updated': updated,
             'failed': failed,
             'total': len(orders_with_tracking),
+            'skipped': skipped_delivered,
             'results': results,
-            'message': f'Updated {updated} out of {len(orders_with_tracking)} orders'
+            'message': message
         })
     except Exception as e:
         import traceback
