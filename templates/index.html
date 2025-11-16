@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AliExpress Order Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛒 AliExpress Order Tracker</h1>
+            <p>Track all your AliExpress orders in one place</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-section">
+                <h3>Bulk Actions</h3>
+                <div class="input-group">
+                    <button onclick="refreshAllTracking()" id="refreshAllBtn" class="btn-refresh-all">🔄 Update All Parcels</button>
+                    <button onclick="exportOrders()" class="btn-export">📥 Export Orders</button>
+                    <span id="refreshAllStatus" style="margin-left: 10px; color: #666; font-size: 14px;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="statusFilter">Filter by Status:</label>
+                    <select id="statusFilter" onchange="applyFilters()">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="In Transit">In Transit</option>
+                        <option value="Out for Delivery">Out for Delivery</option>
+                        <option value="Delivered">Delivered</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sortBy">Sort by:</label>
+                    <select id="sortBy" onchange="applyFilters()">
+                        <option value="added_date_desc">Newest First</option>
+                        <option value="added_date_asc">Oldest First</option>
+                        <option value="order_date_desc">Order Date (Newest)</option>
+                        <option value="order_date_asc">Order Date (Oldest)</option>
+                        <option value="last_update_desc">Last Update (Recent)</option>
+                        <option value="last_update_asc">Last Update (Oldest)</option>
+                        <option value="product_title_asc">Product Name (A-Z)</option>
+                        <option value="product_title_desc">Product Name (Z-A)</option>
+                        <option value="tracking_number_asc">Tracking Number (A-Z)</option>
+                        <option value="tracking_number_desc">Tracking Number (Z-A)</option>
+                        <option value="status_asc">Status (A-Z)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="searchFilter">Search:</label>
+                    <input type="text" id="searchFilter" placeholder="Product name, tracking number..." oninput="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <button onclick="clearFilters()" class="btn-clear">Clear Filters</button>
+                </div>
+            </div>
+            <div class="filter-info">
+                <span id="filterCount">Showing all orders</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Product</th>
+                        <th>Tracking Number</th>
+                        <th>Status</th>
+                        <th>Latest Update</th>
+                        <th>Order Date</th>
+                        <th>Last Update</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                                </svg>
+                                <p>No orders yet. Add an order to get started!</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="openAddOrderModal()" title="Add New Order">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
+
+    <!-- Add Order Modal -->
+    <div id="addOrderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeAddOrderModal()">&times;</span>
+                <h2>Add New Order</h2>
+            </div>
+            <div id="addOrderAlert"></div>
+            <div class="form-group">
+                <label>AliExpress Product URL</label>
+                <input type="url" id="productUrl" class="form-control" placeholder="Paste AliExpress product URL here...">
+            </div>
+            <div class="form-group">
+                <label>Tracking Number (Optional)</label>
+                <input type="text" id="trackingNumber" class="form-control" placeholder="Enter tracking number">
+            </div>
+            <div class="modal-actions">
+                <button onclick="closeAddOrderModal()" class="btn-secondary">Cancel</button>
+                <button onclick="addOrder()" class="btn-primary">Add Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>Edit Order</h2>
+            </div>
+            <div id="modalAlert"></div>
+            <div class="form-group">
+                <label>Product Title</label>
+                <input type="text" id="editProductTitle" class="form-control" placeholder="Enter product title">
+            </div>
+            <div class="form-group">
+                <label>Tracking Number</label>
+                <input type="text" id="editTrackingNumber" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Product Image URL</label>
+                <input type="url" id="editProductImage" class="form-control" placeholder="https://example.com/image.jpg">
+                <small style="color: #666; font-size: 12px;">Enter a URL to replace the product image</small>
+            </div>
+            <button onclick="saveOrder()">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- Tracking Events Modal -->
+    <div id="eventsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <span class="close" onclick="closeEventsModal()">&times;</span>
+                <h2>Tracking Events</h2>
+            </div>
+            <div id="eventsContent" class="events-list"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+
