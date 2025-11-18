@@ -10,8 +10,11 @@ def parse_curl_command(curl_command):
     post_data = None
     method = 'GET'
     
-    # Normalize: remove line breaks and extra spaces, but preserve quoted strings
-    normalized = re.sub(r'\s+', ' ', curl_command)
+    # First, remove line continuation backslashes and join lines
+    # Replace '\n\' with space, then normalize whitespace
+    normalized = curl_command.replace('\\\n', ' ').replace('\\\r\n', ' ')
+    # Normalize: remove extra spaces, but preserve quoted strings
+    normalized = re.sub(r'\s+', ' ', normalized)
     
     # Check if it's a POST request
     if re.search(r'-X\s+POST', normalized) or re.search(r'--data', normalized):
@@ -50,17 +53,33 @@ def parse_curl_command(curl_command):
 
 def parse_jsonp_response(jsonp_text):
     """Parse JSONP response and extract JSON data"""
-    # Remove JSONP wrapper (e.g., mtopjsonp2({...}))
-    jsonp_match = re.search(r'^[^(]+\((.+)\);?\s*$', jsonp_text, re.DOTALL)
-    if jsonp_match:
-        json_text = jsonp_match.group(1)
-    else:
-        json_text = jsonp_text
+    if not jsonp_text or not jsonp_text.strip():
+        return None
     
+    # Try to remove JSONP wrapper (e.g., mtopjsonp2({...}) or mtopjsonp1({...}))
+    # Pattern matches: function_name({...}) or function_name({...});
+    jsonp_match = re.search(r'^[^(]+\((.+)\);?\s*$', jsonp_text.strip(), re.DOTALL)
+    if jsonp_match:
+        json_text = jsonp_match.group(1).strip()
+    else:
+        # If no JSONP wrapper found, try to use the text as-is
+        json_text = jsonp_text.strip()
+    
+    # Try to parse as JSON
     try:
         return json.loads(json_text)
     except json.JSONDecodeError as e:
+        # If parsing fails, try to find JSON object in the text
+        # Look for {...} pattern
+        json_obj_match = re.search(r'\{.*\}', json_text, re.DOTALL)
+        if json_obj_match:
+            try:
+                return json.loads(json_obj_match.group(0))
+            except json.JSONDecodeError:
+                pass
+        
         print(f"JSON decode error: {e}")
+        print(f"Attempted to parse (first 500 chars): {json_text[:500]}")
         return None
 
 def extract_orders_from_api_response(api_data):

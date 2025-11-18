@@ -33,10 +33,16 @@ def import_orders():
             response = requests.get(url, headers=headers, cookies=cookies, timeout=30)
         
         if response.status_code != 200:
+            error_text = response.text[:500] if response.text else 'No response body'
+            print(f"API request failed: Status {response.status_code}, Response: {error_text}")
             return jsonify({
                 'success': False,
-                'error': f'API request failed with status {response.status_code}: {response.text[:200]}'
+                'error': f'API request failed with status {response.status_code}. Response may not be valid JSON.'
             }), 400
+        
+        # Debug: print first 500 chars of response
+        response_preview = response.text[:500] if response.text else ''
+        print(f"Response preview: {response_preview}")
         
         # Parse response (could be JSONP or JSON)
         api_data = parse_jsonp_response(response.text)
@@ -46,10 +52,12 @@ def import_orders():
             import json
             try:
                 api_data = json.loads(response.text)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {e}")
+                print(f"Response text (first 1000 chars): {response.text[:1000]}")
                 return jsonify({
                     'success': False,
-                    'error': 'Failed to parse API response (neither JSONP nor JSON)'
+                    'error': f'Failed to parse API response. The response may not be valid JSON/JSONP. Error: {str(e)}'
                 }), 400
         
         if not api_data:

@@ -1,6 +1,6 @@
 # AliExpress Order Tracker
 
-A Python web application for tracking AliExpress orders with automatic tracking updates, bulk import, and a beautiful, modern interface.
+A Python web application for tracking AliExpress orders with automatic tracking updates and a beautiful, modern interface.
 
 ## Features
 
@@ -8,7 +8,7 @@ A Python web application for tracking AliExpress orders with automatic tracking 
 - 🖼️ **Local Image Storage**: Downloads and stores product images locally for offline access
 - 📊 **Order Tracking**: Automatic tracking updates via Cainiao API with bulk refresh support
 - 🔄 **Bulk Operations**: Update all orders' tracking information with a single click
-- 📥 **Import from AliExpress**: Import orders directly from AliExpress using cURL commands
+- 🇮🇱 **Doar Israel Integration**: Track local delivery status directly from Israel Post
 - 📦 **Multi-Item Orders**: View and manage orders with multiple items (sub-items)
 - 💰 **Price Tracking**: Display and sort orders by price
 - 🔍 **Filtering & Sorting**: Filter by status, search by product name, sort by various criteria
@@ -29,13 +29,11 @@ aliexpress_tracker/
 │   ├── __init__.py
 │   ├── images.py            # Image download and storage
 │   ├── tracking.py          # Tracking information fetching
-│   ├── aliexpress.py        # AliExpress product extraction
-│   └── curl_parser.py       # cURL parsing and order extraction
+│   └── aliexpress.py        # AliExpress product extraction
 ├── routes/
 │   ├── __init__.py          # Route registration
 │   ├── main.py              # Main page routes
-│   ├── api.py               # API routes (orders, tracking)
-│   └── import_routes.py     # Import routes
+│   └── api.py               # API routes (orders, tracking)
 ├── static/
 │   ├── css/
 │   │   └── style.css        # Styles
@@ -44,8 +42,7 @@ aliexpress_tracker/
 │   └── images/
 │       └── products/        # Locally stored product images
 ├── templates/
-│   ├── index.html           # Main application page
-│   └── import.html          # Import page (legacy)
+│   └── index.html           # Main application page
 └── orders.json              # Order data storage (gitignored)
 ```
 
@@ -87,12 +84,6 @@ http://localhost:8000
 - Optionally add a tracking number
 - Click "Add Order" to extract product info and add it to your tracker
 
-**Method 2: Import from AliExpress**
-- Click "Import Orders from AliExpress" in the Bulk Actions section
-- Follow the instructions to copy a cURL command from your browser's Network tab
-- Paste the cURL command and click "Import Orders"
-- Orders with multiple items will be grouped automatically
-
 ### Managing Orders
 
 - **Edit Orders**: Click "Edit" to modify product title, image URL, or tracking number
@@ -122,9 +113,6 @@ http://localhost:8000
 - `GET /api/orders/<id>/tracking` - Get tracking information for an order
 - `POST /api/orders/<id>/tracking` - Refresh tracking information for an order
 - `POST /api/orders/refresh-all` - Refresh tracking for all orders (bulk)
-
-### Import
-- `POST /api/import/orders` - Import orders from AliExpress API (cURL command)
 
 ### Utilities
 - `GET /api/image-proxy` - Proxy endpoint for AliExpress images (with local caching)
@@ -175,8 +163,6 @@ The application uses a modular structure:
 - Orders are stored in JSON format. For production use with large datasets, consider implementing a database (SQLite, PostgreSQL, etc.)
 - Product information extraction uses web scraping, which may need adjustments if AliExpress changes their HTML structure
 - Tracking information is fetched from the public Cainiao API
-- Import functionality requires copying a cURL command from your browser's developer tools (includes authentication cookies)
-
 ## Future Enhancements
 
 - Database integration for better performance and scalability
