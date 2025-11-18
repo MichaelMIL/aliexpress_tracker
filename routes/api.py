@@ -5,6 +5,8 @@ from models.order import orders, save_orders, get_next_order_id
 from utils.images import download_and_save_image
 from utils.tracking import fetch_tracking_info, fetch_bulk_tracking_info
 from utils.aliexpress import extract_product_info
+from utils.doar_israel import fetch_doar_tracking_info
+from config import get_doar_api_key, set_doar_api_key
 
 api_bp = Blueprint('api', __name__)
 
@@ -326,4 +328,133 @@ def image_proxy():
 def favicon():
     """Return 204 No Content for favicon requests"""
     return '', 204
+
+@api_bp.route('/config/doar-api-key', methods=['GET', 'POST'])
+def doar_api_key():
+    """Get or set Doar Israel API key"""
+    if request.method == 'GET':
+        api_key = get_doar_api_key()
+        # Return masked key for security (only show last 4 characters)
+        masked_key = '*' * (len(api_key) - 4) + api_key[-4:] if len(api_key) > 4 else '*' * len(api_key)
+        return jsonify({
+            'api_key_set': bool(api_key),
+            'masked_key': masked_key if api_key else ''
+        })
+    else:  # POST
+        data = request.json
+        api_key = data.get('api_key', '').strip()
+        
+        if not api_key:
+            return jsonify({'error': 'API key is required'}), 400
+        
+        set_doar_api_key(api_key)
+        return jsonify({
+            'success': True,
+            'message': 'API key saved successfully'
+        })
+
+@api_bp.route('/orders/<int:order_id>/doar-tracking', methods=['GET', 'POST'])
+def refresh_doar_tracking(order_id):
+    """Refresh Doar Israel tracking information for an order"""
+    order = next((o for o in orders if o['id'] == order_id), None)
+    
+    if not order:
+        return jsonify({'error': 'Order not found'}), 404
+    
+    tracking_number = order.get('tracking_number', '')
+    if not tracking_number:
+        return jsonify({'error': 'No tracking number available'}), 400
+    
+    tracking_info = fetch_doar_tracking_info(tracking_number)
+    if tracking_info:
+        # Store Doar Israel tracking info separately
+        if 'doar_tracking_info' not in order:
+            order['doar_tracking_info'] = {}
+        order['doar_tracking_info'] = tracking_info
+        save_orders()
+        return jsonify({
+            'success': True,
+            'tracking_info': tracking_info,
+            'order': order,
+            'message': 'Doar Israel tracking information updated'
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch Doar Israel tracking information'
+        }), 500
+
+@api_bp.route('/orders/refresh-all-doar', methods=['POST'])
+def refresh_all_doar_tracking():
+    """Refresh Doar Israel tracking information for all orders with tracking numbers"""
+    try:
+        api_key = get_doar_api_key()
+        if not api_key:
+            return jsonify({
+                'success': False,
+                'error': 'Doar Israel API key not configured. Please set it in the bulk actions.'
+            }), 400
+        
+        orders_with_tracking = []
+        
+        for o in orders:
+            if o.get('tracking_number') and o.get('tracking_number').strip():
+                orders_with_tracking.append(o)
+        
+        if not orders_with_tracking:
+            return jsonify({
+                'success': True,
+                'updated': 0,
+                'total': 0,
+                'message': 'No orders with tracking numbers found'
+            })
+        
+        updated = 0
+        failed = 0
+        results = []
+        
+        for order in orders_with_tracking:
+            tracking_number = order.get('tracking_number', '').strip()
+            if tracking_number:
+                tracking_info = fetch_doar_tracking_info(tracking_number)
+                if tracking_info and not tracking_info.get('error'):
+                    if 'doar_tracking_info' not in order:
+                        order['doar_tracking_info'] = {}
+                    order['doar_tracking_info'] = tracking_info
+                    updated += 1
+                    results.append({
+                        'order_id': order['id'],
+                        'success': True,
+                        'tracking_number': tracking_number
+                    })
+                else:
+                    failed += 1
+                    error_msg = tracking_info.get('error', 'Failed to fetch tracking info') if tracking_info else 'No tracking info returned'
+                    results.append({
+                        'order_id': order['id'],
+                        'success': False,
+                        'tracking_number': tracking_number,
+                        'error': error_msg
+                    })
+        
+        save_orders()
+        
+        print(f"Doar Israel bulk update completed: {updated} updated, {failed} failed out of {len(orders_with_tracking)} total")
+        
+        return jsonify({
+            'success': True,
+            'updated': updated,
+            'failed': failed,
+            'total': len(orders_with_tracking),
+            'results': results,
+            'message': f'Updated {updated} out of {len(orders_with_tracking)} orders'
+        })
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error refreshing all Doar Israel tracking: {error_trace}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 

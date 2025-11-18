@@ -201,6 +201,28 @@ th {
     border-bottom: 2px solid #e0e0e0;
 }
 
+/* Column width constraints */
+#ordersTable th:nth-child(4),
+#ordersTable td:nth-child(4) {
+    width: 80px;
+    max-width: 80px;
+    padding: 15px 8px;
+}
+
+#ordersTable th:nth-child(9),
+#ordersTable td:nth-child(9) {
+    width: 120px;
+    max-width: 120px;
+    padding: 15px 8px;
+}
+
+#ordersTable th:nth-child(10),
+#ordersTable td:nth-child(10) {
+    width: 200px;
+    max-width: 200px;
+    padding: 15px 8px;
+}
+
 td {
     padding: 15px;
     border-bottom: 1px solid #e0e0e0;
@@ -351,6 +373,27 @@ tr:hover {
     color: #383d41;
 }
 
+/* Doar Israel Status Styles */
+.status-בתהליך-מיון {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-הוזמן {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-ממתין-לאיסוף-שלך {
+    background: #ffeaa7;
+    color: #d63031;
+}
+
+.status-נמסר {
+    background: #d4edda;
+    color: #155724;
+}
+
 .tracking-number {
     font-family: monospace;
     font-size: 13px;
@@ -359,12 +402,15 @@ tr:hover {
 
 .action-buttons {
     display: flex;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 200px;
 }
 
 .btn-small {
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 4px 8px;
+    font-size: 11px;
+    white-space: nowrap;
 }
 
 .btn-doar {
@@ -381,6 +427,19 @@ tr:hover {
     height: 16px;
     width: auto;
     display: block;
+}
+
+.doar-status-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+}
+
+.event-branch {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
 }
 
 .btn-delete {
@@ -635,6 +694,10 @@ code {
 
 .latest-update-cell {
     max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
 }
 
 .latest-update-text {
@@ -764,7 +827,8 @@ code {
 .price-cell {
     font-size: 14px;
     color: #333;
-    min-width: 100px;
+    width: 80px;
+    max-width: 80px;
 }
 
 .price-text {
@@ -784,15 +848,15 @@ code {
 }
 
 .last-update-cell {
-    font-size: 12px;
-    color: #666;
-    min-width: 150px;
+    font-size: 13px;
+    color: #333;
+    width: 120px;
+    max-width: 120px;
 }
 
 .last-update-date {
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    color: #495057;
+    font-size: 13px;
+    color: #333;
 }
 
 .btn-refresh-all {

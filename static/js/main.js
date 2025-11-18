@@ -191,6 +191,22 @@ function applyFilters() {
                 const aStatus = ((a.tracking_info || {}).status || a.status || 'Pending').toLowerCase();
                 const bStatus = ((b.tracking_info || {}).status || b.status || 'Pending').toLowerCase();
                 return aStatus.localeCompare(bStatus);
+            case 'doar_status_asc':
+                const aDoarStatus = ((a.doar_tracking_info || {}).status || 'N/A').toLowerCase();
+                const bDoarStatus = ((b.doar_tracking_info || {}).status || 'N/A').toLowerCase();
+                // Put N/A at the end
+                if (aDoarStatus === 'n/a' && bDoarStatus === 'n/a') return 0;
+                if (aDoarStatus === 'n/a') return 1;
+                if (bDoarStatus === 'n/a') return -1;
+                return aDoarStatus.localeCompare(bDoarStatus);
+            case 'doar_status_desc':
+                const aDoarStatusDesc = ((a.doar_tracking_info || {}).status || 'N/A').toLowerCase();
+                const bDoarStatusDesc = ((b.doar_tracking_info || {}).status || 'N/A').toLowerCase();
+                // Put N/A at the end
+                if (aDoarStatusDesc === 'n/a' && bDoarStatusDesc === 'n/a') return 0;
+                if (aDoarStatusDesc === 'n/a') return 1;
+                if (bDoarStatusDesc === 'n/a') return -1;
+                return bDoarStatusDesc.localeCompare(aDoarStatusDesc);
             default:
                 return 0;
         }
@@ -229,7 +245,7 @@ function displayOrders(orders) {
             
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="empty-state">
+                    <td colspan="10" class="empty-state">
                         <div>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
@@ -249,6 +265,13 @@ function displayOrders(orders) {
             const trackingEvents = trackingInfo.events || [];
             const hasTracking = order.tracking_number && order.tracking_number.trim() !== '';
             const latestStanderdDesc = trackingInfo.latest_standerd_desc || '';
+            
+            // Doar Israel tracking info
+            const doarTrackingInfo = order.doar_tracking_info || {};
+            const doarStatus = doarTrackingInfo.status || 'N/A';
+            const doarStatusField = doarTrackingInfo.status_field || '';
+            const doarEvents = doarTrackingInfo.events || [];
+            const doarDeliveryType = doarTrackingInfo.delivery_type || '';
             
             // Use placeholder if no image or if image URL looks invalid
             const imageUrl = order.product_image || '';
@@ -310,6 +333,11 @@ function displayOrders(orders) {
                     </div>
                 </td>
                 <td>
+                    <div class="order-date-cell">
+                        ${formatOrderDate(order.order_date, order.added_date)}
+                    </div>
+                </td>
+                <td>
                     <div class="price-cell">
                         ${order.price ? `<span class="price-text">${order.price}</span>` : '<span class="no-price">N/A</span>'}
                     </div>
@@ -332,11 +360,26 @@ function displayOrders(orders) {
                         ${latestStanderdDesc ? `
                             <span class="latest-update-text" title="${latestStanderdDesc}">${latestStanderdDesc.length > 50 ? latestStanderdDesc.substring(0, 50) + '...' : latestStanderdDesc}</span>
                         ` : '<span class="no-update">No update</span>'}
+                        ${hasTracking ? `
+                            <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
+                                ${trackingEvents.length > 0 ? `<button class="btn-small btn-events" onclick="showEvents(${order.id})" title="View all events" style="font-size: 10px; padding: 2px 6px;">📦 Events</button>` : ''}
+                                <button class="btn-small btn-tracking" onclick="refreshTracking(${order.id}, event)" title="Refresh tracking" style="font-size: 10px; padding: 2px 6px;">🔄 Update</button>
+                            </div>
+                        ` : ''}
                     </div>
                 </td>
                 <td>
-                    <div class="order-date-cell">
-                        ${formatOrderDate(order.order_date, order.added_date)}
+                    <div class="doar-status-cell">
+                        ${doarStatus !== 'N/A' ? `
+                            <span class="status-badge status-${doarStatus.toLowerCase().replace(/\s+/g, '-')}" title="${doarDeliveryType ? 'Delivery: ' + doarDeliveryType : ''}">${doarStatus}</span>
+                            ${doarStatusField ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">${doarStatusField}</div>` : ''}
+                        ` : '<span class="no-update">N/A</span>'}
+                        ${hasTracking ? `
+                            <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
+                                ${doarEvents.length > 0 ? `<button class="btn-small btn-events" onclick="showDoarEvents(${order.id})" title="View Doar Israel tracking history" style="font-size: 10px; padding: 2px 6px;">📦 Events</button>` : ''}
+                                <button class="btn-small btn-tracking" onclick="refreshDoarTracking(${order.id}, event)" title="Refresh Doar Israel tracking" style="font-size: 10px; padding: 2px 6px;">🔄 Update</button>
+                            </div>
+                        ` : ''}
                     </div>
                 </td>
                 <td>
@@ -348,8 +391,6 @@ function displayOrders(orders) {
                 </td>
                 <td>
                     <div class="action-buttons">
-                        ${hasTracking && trackingEvents.length > 0 ? `<button class="btn-small btn-events" onclick="showEvents(${order.id})" title="View all events">📦</button>` : ''}
-                        ${hasTracking ? `<button class="btn-small btn-tracking" onclick="refreshTracking(${order.id}, event)" title="Refresh tracking">🔄</button>` : ''}
                         ${hasTracking ? `<button class="btn-small btn-doar" onclick="openDoarTracking('${(order.tracking_number || '').replace(/'/g, "\\'")}')" title="Open in Doar Israel"><img src="/static/images/Doar_logo_170x92.png" alt="Doar Israel" class="btn-doar-img"></button>` : ''}
                         <button class="btn-small" onclick="editOrder(${order.id})">Edit</button>
                         <button class="btn-small btn-delete" onclick="deleteOrder(${order.id})">Delete</button>
@@ -566,7 +607,7 @@ async function refreshTracking(orderId, event) {
     
     if (button) {
         button.disabled = true;
-        button.textContent = '⏳';
+        button.textContent = '⏳ Updating...';
     }
     
     try {
@@ -961,6 +1002,8 @@ window.onclick = function(event) {
     const editModal = document.getElementById('editModal');
     const eventsModal = document.getElementById('eventsModal');
     const importModal = document.getElementById('importModal');
+    const doarApiKeyModal = document.getElementById('doarApiKeyModal');
+    const doarEventsModal = document.getElementById('doarEventsModal');
     if (event.target === addOrderModal) {
         closeAddOrderModal();
     }
@@ -976,6 +1019,12 @@ window.onclick = function(event) {
     }
     if (event.target === importModal) {
         closeImportModal();
+    }
+    if (event.target === doarApiKeyModal) {
+        closeDoarApiKeyModal();
+    }
+    if (event.target === doarEventsModal) {
+        closeDoarEventsModal();
     }
 }
 
@@ -1000,4 +1049,226 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Doar Israel API Key Modal Functions
+function openDoarApiKeyModal() {
+    const modal = document.getElementById('doarApiKeyModal');
+    modal.style.display = 'flex';
+    document.getElementById('doarApiKey').value = '';
+    document.getElementById('doarApiKeyAlert').innerHTML = '';
+    
+    // Load current API key status
+    fetch('/api/config/doar-api-key')
+        .then(res => res.json())
+        .then(data => {
+            const currentKeyInfo = document.getElementById('currentApiKeyInfo');
+            const currentKeyMasked = document.getElementById('currentApiKeyMasked');
+            if (data.api_key_set) {
+                currentKeyInfo.style.display = 'block';
+                currentKeyMasked.textContent = data.masked_key;
+            } else {
+                currentKeyInfo.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading API key status:', error);
+        });
+    
+    setTimeout(() => document.getElementById('doarApiKey').focus(), 100);
+}
+
+function closeDoarApiKeyModal() {
+    document.getElementById('doarApiKeyModal').style.display = 'none';
+    document.getElementById('doarApiKeyAlert').innerHTML = '';
+}
+
+async function saveDoarApiKey() {
+    const apiKey = document.getElementById('doarApiKey').value.trim();
+    const saveBtn = document.getElementById('saveDoarApiKeyBtn');
+    const alertDiv = document.getElementById('doarApiKeyAlert');
+    
+    if (!apiKey) {
+        alertDiv.innerHTML = '<div class="alert alert-error">Please enter an API key</div>';
+        return;
+    }
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    alertDiv.innerHTML = '<div class="alert alert-info">Saving API key...</div>';
+    
+    try {
+        const response = await fetch('/api/config/doar-api-key', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ api_key: apiKey })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alertDiv.innerHTML = '<div class="alert alert-success">API key saved successfully!</div>';
+            setTimeout(() => {
+                closeDoarApiKeyModal();
+            }, 1500);
+        } else {
+            alertDiv.innerHTML = '<div class="alert alert-error">Error: ' + (data.error || 'Failed to save API key') + '</div>';
+        }
+    } catch (error) {
+        console.error('Error saving API key:', error);
+        alertDiv.innerHTML = '<div class="alert alert-error">Error saving API key. Please try again.</div>';
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save API Key';
+    }
+}
+
+// Doar Israel Tracking Functions
+async function refreshDoarTracking(orderId, event) {
+    const button = event ? event.target : null;
+    const originalText = button ? button.textContent : '';
+    
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Updating...';
+    }
+    
+    try {
+        const response = await fetch(`/api/orders/${orderId}/doar-tracking`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            await loadOrders();
+            applyFilters();
+            if (button) {
+                button.textContent = '✓';
+                button.style.color = '#28a745';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.color = '';
+                    button.disabled = false;
+                }, 2000);
+            }
+        } else {
+            if (button) {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+            alert('Error refreshing Doar Israel tracking: ' + (data.error || 'Failed to fetch tracking information'));
+        }
+    } catch (error) {
+        console.error('Error refreshing Doar Israel tracking:', error);
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+        alert('Error refreshing Doar Israel tracking. Please try again.');
+    }
+}
+
+async function refreshAllDoarTracking() {
+    const button = document.getElementById('refreshAllDoarBtn');
+    const statusSpan = document.getElementById('refreshAllStatus');
+    const originalText = button.textContent;
+    
+    button.disabled = true;
+    button.textContent = '⏳ Updating...';
+    statusSpan.textContent = 'Please wait...';
+    statusSpan.style.color = '#666';
+    
+    try {
+        const response = await fetch('/api/orders/refresh-all-doar', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            statusSpan.textContent = `✓ ${data.message}`;
+            statusSpan.style.color = '#28a745';
+            
+            await loadOrders();
+            applyFilters();
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+                statusSpan.textContent = '';
+            }, 3000);
+        } else {
+            statusSpan.textContent = `✗ Error: ${data.error || 'Failed to update orders'}`;
+            statusSpan.style.color = '#dc3545';
+            button.textContent = originalText;
+            button.disabled = false;
+            
+            setTimeout(() => {
+                statusSpan.textContent = '';
+            }, 5000);
+        }
+    } catch (error) {
+        console.error('Error refreshing all Doar Israel tracking:', error);
+        statusSpan.textContent = '✗ Error: Failed to update orders';
+        statusSpan.style.color = '#dc3545';
+        button.textContent = originalText;
+        button.disabled = false;
+        
+        setTimeout(() => {
+            statusSpan.textContent = '';
+        }, 5000);
+    }
+}
+
+function showDoarEvents(orderId) {
+    fetch('/api/orders')
+        .then(res => res.json())
+        .then(data => {
+            const order = data.orders.find(o => o.id === orderId);
+            if (order && order.doar_tracking_info && order.doar_tracking_info.events) {
+                const events = order.doar_tracking_info.events;
+                const modal = document.getElementById('doarEventsModal');
+                const content = document.getElementById('doarEventsContent');
+                
+                if (events.length === 0) {
+                    content.innerHTML = '<p>No Doar Israel tracking events available.</p>';
+                } else {
+                    const deliveryType = order.doar_tracking_info.delivery_type || '';
+                    content.innerHTML = `
+                        <div class="events-header">
+                            <p><strong>Tracking Number:</strong> ${order.tracking_number}</p>
+                            <p><strong>Delivery Type:</strong> ${deliveryType || 'N/A'}</p>
+                            <p><strong>Total Events:</strong> ${events.length}</p>
+                        </div>
+                        <div class="events-timeline">
+                            ${events.map((event, index) => `
+                                <div class="event-item">
+                                    <div class="event-date">${event.date || 'Date not available'}</div>
+                                    <div class="event-content">
+                                        ${event.category ? `<div class="event-status">${event.category}</div>` : ''}
+                                        ${event.branch ? `<div class="event-branch">${event.branch}${event.city ? ', ' + event.city : ''}</div>` : ''}
+                                        <div class="event-description">${event.description}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                modal.style.display = 'flex';
+            } else {
+                alert('No Doar Israel tracking information available for this order');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading Doar Israel events:', error);
+            alert('Error loading Doar Israel tracking events');
+        });
+}
+
+function closeDoarEventsModal() {
+    document.getElementById('doarEventsModal').style.display = 'none';
+}
 
