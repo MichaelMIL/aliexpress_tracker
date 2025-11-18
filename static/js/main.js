@@ -350,6 +350,7 @@ function displayOrders(orders) {
                     <div class="action-buttons">
                         ${hasTracking && trackingEvents.length > 0 ? `<button class="btn-small btn-events" onclick="showEvents(${order.id})" title="View all events">📦</button>` : ''}
                         ${hasTracking ? `<button class="btn-small btn-tracking" onclick="refreshTracking(${order.id}, event)" title="Refresh tracking">🔄</button>` : ''}
+                        ${hasTracking ? `<button class="btn-small btn-doar" onclick="openDoarTracking('${(order.tracking_number || '').replace(/'/g, "\\'")}')" title="Open in Doar Israel"><img src="/static/images/Doar_logo_170x92.png" alt="Doar Israel" class="btn-doar-img"></button>` : ''}
                         <button class="btn-small" onclick="editOrder(${order.id})">Edit</button>
                         <button class="btn-small btn-delete" onclick="deleteOrder(${order.id})">Delete</button>
                     </div>
@@ -541,6 +542,22 @@ async function deleteOrder(orderId) {
         console.error('Error deleting order:', error);
         alert('Error deleting order. Please try again.');
     }
+}
+
+function openDoarTracking(trackingNumber) {
+    if (!trackingNumber) {
+        alert('Tracking number not available for this order.');
+        return;
+    }
+    
+    const trimmedTracking = trackingNumber.trim();
+    if (!trimmedTracking) {
+        alert('Tracking number not available for this order.');
+        return;
+    }
+    
+    const url = `https://doar.israelpost.co.il/deliverytracking?itemcode=${encodeURIComponent(trimmedTracking)}`;
+    window.open(url, '_blank', 'noopener');
 }
 
 async function refreshTracking(orderId, event) {
