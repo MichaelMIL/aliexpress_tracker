@@ -18,6 +18,9 @@ orders.json
 orders copy*.json
 static/images/products/
 
+# config.json
+config.json
+
 # IDE
 .vscode/
 .idea/
