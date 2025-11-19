@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.07.00 - 2025-11-19
+
+- 0f3fec5 Add colored tracking badges
 ## v1.06.00 - 2025-11-19
 
 - f7b0848 chore: bump version to v1.05.01
