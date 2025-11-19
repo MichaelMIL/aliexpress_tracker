@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.04.00 - 2025-11-19
+
+- 06fcba2 Link version badge and automate release notes
 Entries are automatically prepended by `scripts/release.sh`.
 
 ## Unreleased
