@@ -10,3 +10,4 @@ Entries are automatically prepended by `scripts/release.sh`.
 - Enhanced `scripts/release.sh` to automatically capture commit history and prepend release notes to `CHANGELOG.md`.
 - Added `.cursor/rules` to enforce documenting changes in `CHANGELOG.md` prior to every commit.
 - Made the `version-badge` in the header a link to the GitHub repository.
+- Updated `scripts/release.sh` to create a GitHub release via `gh release create` (when the GitHub CLI is available) after tagging and pushing.

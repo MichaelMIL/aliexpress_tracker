@@ -73,3 +73,13 @@ current_branch=$(git rev-parse --abbrev-ref HEAD)
 git push origin "$current_branch"
 git push origin --tags
 
+if command -v gh >/dev/null 2>&1; then
+  release_body="$release_notes_section"
+  echo "Creating GitHub release ${tag_name}..."
+  gh release create "$tag_name" --title "$tag_name" --notes "$release_body" || {
+    echo "Failed to create GitHub release via gh CLI."
+  }
+else
+  echo "GitHub CLI (gh) not found; skipping GitHub release creation."
+fi
+
