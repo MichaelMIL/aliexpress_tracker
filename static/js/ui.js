@@ -41,6 +41,8 @@ function displayOrders(orders) {
             const doarStatusField = doarTrackingInfo.status_field || '';
             const doarEvents = doarTrackingInfo.events || [];
             const doarDeliveryType = doarTrackingInfo.delivery_type || '';
+            const latestDoarEvent = doarEvents.length > 0 ? doarEvents[0] : null;
+            const doarLastUpdate = (doarTrackingInfo.last_update_date || doarTrackingInfo.last_update || (latestDoarEvent ? latestDoarEvent.date : '')) || '';
             
             // Use placeholder if no image or if image URL looks invalid
             const imageUrl = order.product_image || '';
@@ -120,17 +122,16 @@ function displayOrders(orders) {
                     </div>
                 </td>
                 <td>
-                    <div class="status-cell">
+                    <div class="cainiao-status-cell">
                         <span class="status-badge status-${trackingStatus.toLowerCase().replace(/\s+/g, '-')}">${trackingStatus}</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="latest-update-cell">
                         ${latestStanderdDesc ? `
-                            <span class="latest-update-text" title="${latestStanderdDesc}">${latestStanderdDesc.length > 50 ? latestStanderdDesc.substring(0, 50) + '...' : latestStanderdDesc}</span>
+                            <span class="latest-update-text" title="${latestStanderdDesc}">${latestStanderdDesc.length > 60 ? latestStanderdDesc.substring(0, 60) + '...' : latestStanderdDesc}</span>
                         ` : '<span class="no-update">No update</span>'}
+                        ${trackingInfo.last_update_date ? `
+                            <span class="cainiao-last-update" title="${trackingInfo.last_update_date}">Last update: ${trackingInfo.last_update_date}</span>
+                        ` : ''}
                         ${hasTracking ? `
-                            <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
+                            <div class="cainiao-actions">
                                 ${trackingEvents.length > 0 ? `<button class="btn-small btn-events" onclick="showEvents(${order.id})" title="View all events" style="font-size: 10px; padding: 2px 6px;">📦 Events</button>` : ''}
                                 <button class="btn-small btn-tracking" onclick="refreshTracking(${order.id}, event)" title="Refresh tracking" style="font-size: 10px; padding: 2px 6px;">🔄 Update</button>
                             </div>
@@ -142,6 +143,7 @@ function displayOrders(orders) {
                         ${doarStatus !== 'N/A' ? `
                             <span class="status-badge status-${doarStatus.toLowerCase().replace(/\s+/g, '-')}" title="${doarDeliveryType ? 'Delivery: ' + doarDeliveryType : ''}">${doarStatus}</span>
                             ${doarStatusField ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">${doarStatusField}</div>` : ''}
+                            ${doarLastUpdate ? `<span class="doar-last-update" title="${doarLastUpdate}">Last update: ${doarLastUpdate}</span>` : ''}
                         ` : '<span class="no-update">N/A</span>'}
                         ${hasTracking ? `
                             <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
@@ -154,13 +156,6 @@ function displayOrders(orders) {
                 <td>
                     <div class="doar-delivery-cell">
                         ${doarDeliveryType ? `<span class="doar-delivery-text delivery-type-${doarDeliveryType.replace(/\s+/g, '-')}">${doarDeliveryType}</span>` : '<span class="no-update">N/A</span>'}
-                    </div>
-                </td>
-                <td>
-                    <div class="last-update-cell">
-                        ${trackingInfo.last_update_date ? `
-                            <span class="last-update-date" title="${trackingInfo.last_update_date}">${trackingInfo.last_update_date}</span>
-                        ` : '<span class="no-update">N/A</span>'}
                     </div>
                 </td>
                 <td>
