@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.05.00 - 2025-11-19
+
+- e4e7cc1 Extend release script to publish GitHub releases
 ## v1.04.00 - 2025-11-19
 
 - 06fcba2 Link version badge and automate release notes
