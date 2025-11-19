@@ -62,7 +62,7 @@ printf "%s\n" "$formatted_changes"
 git add "$VERSION_FILE" "$CHANGELOG_FILE"
 git add -A
 
-git commit -m "chore: release v${new_version}"
+git commit -m "Release v${new_version}"
 
 tag_name="v${new_version}"
 git tag -a "$tag_name" -m "Release ${new_version}" -m "${formatted_changes}" || {
