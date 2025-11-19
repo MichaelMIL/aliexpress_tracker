@@ -1,0 +1,126 @@
+/* Status Badge Styles */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-shipped {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-delivered {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-in-transit {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-delivering {
+    background: #b6d4fe;
+    color: #052c65;
+}
+
+.status-out-for-delivery {
+    background: #b3d9ff;
+    color: #004085;
+}
+
+.status-at-customs {
+    background: #fff4e6;
+    color: #b45309;
+}
+
+.status-clear-customs {
+    background: #fff4e6;
+    color: #b45309;
+}
+
+.status-store-processing-the-order {
+    background: #e7f3ff;
+    color: #0a58ca;
+}
+
+.status-in-warehouse {
+    background: #e7f3ff;
+    color: #0a58ca;
+}
+
+.status-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-unknown {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.status-processing {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-arrived {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-departed {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-picked-up {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-exception {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-returned {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-cancelled {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Doar Israel Status Styles */
+.status-בתהליך-מיון {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-הוזמן {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-ממתין-לאיסוף-שלך {
+    background: #ffeaa7;
+    color: #d63031;
+}
+
+.status-נמסר {
+    background: #d4edda;
+    color: #155724;
+}
+
