@@ -14,3 +14,4 @@ Entries are automatically prepended by `scripts/release.sh`.
 - Added `.cursor/rules` to enforce documenting changes in `CHANGELOG.md` prior to every commit.
 - Made the `version-badge` in the header a link to the GitHub repository.
 - Updated `scripts/release.sh` to create a GitHub release via `gh release create` (when the GitHub CLI is available) after tagging and pushing.
+- Added client-side version checking that compares the local build with the latest version on GitHub and highlights the badge when an update is available.

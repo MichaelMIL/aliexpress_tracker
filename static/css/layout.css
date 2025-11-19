@@ -118,6 +118,17 @@
     transform: translateY(-1px);
 }
 
+.version-badge.version-outdated {
+    background: #ffd54f;
+    border-color: #f4b400;
+    color: #5c3b00;
+}
+
+.version-badge.version-outdated:hover {
+    background: #ffca28;
+    transform: translateY(-1px);
+}
+
 .table-container {
     padding: 30px;
     overflow-x: auto;

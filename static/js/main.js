@@ -56,4 +56,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    checkAppVersion();
 });
+
+async function checkAppVersion() {
+    const badge = document.querySelector('.version-badge');
+    if (!badge) {
+        return;
+    }
+
+    const currentVersion = (badge.dataset.currentVersion || '').trim();
+    if (!currentVersion) {
+        return;
+    }
+
+    const versionUrl = `https://raw.githubusercontent.com/MichaelMIL/aliexpress_tracker/main/VERSION?cache-bust=${Date.now()}`;
+
+    try {
+        const response = await fetch(versionUrl, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const latestVersion = (await response.text()).trim();
+        if (latestVersion && latestVersion !== currentVersion) {
+            badge.classList.add('version-outdated');
+            badge.title = `New version available (${latestVersion})`;
+        }
+    } catch (error) {
+        console.warn('Unable to check latest version:', error);
+    }
+}
