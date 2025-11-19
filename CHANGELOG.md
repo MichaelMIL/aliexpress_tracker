@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.06.00 - 2025-11-19
+
+- f7b0848 chore: bump version to v1.05.01
+- 5150e32 Highlight version badge when update available
 ## v1.05.00 - 2025-11-19
 
 - e4e7cc1 Extend release script to publish GitHub releases
