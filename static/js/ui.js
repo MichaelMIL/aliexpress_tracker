@@ -1,4 +1,27 @@
 /* UI Display Functions */
+const trackingColorCache = {};
+
+function getTrackingColor(trackingNumber) {
+    if (!trackingNumber) {
+        return '#9e9e9e';
+    }
+    if (trackingColorCache[trackingNumber]) {
+        return trackingColorCache[trackingNumber];
+    }
+    let hash = 0;
+    for (let i = 0; i < trackingNumber.length; i++) {
+        hash = trackingNumber.charCodeAt(i) + ((hash << 5) - hash);
+        hash = hash & hash;
+    }
+    const absHash = Math.abs(hash * 50 /1000);
+    const hue = absHash % 360;
+    const saturation = 55 + (absHash % 30); // 55-84%
+    const lightness = 40 + ((absHash >> 3) % 25); // 40-64%
+    const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    trackingColorCache[trackingNumber] = color;
+    return color;
+}
+
 function displayOrders(orders) {
     const tbody = document.getElementById('ordersTableBody');
     
@@ -34,6 +57,7 @@ function displayOrders(orders) {
             const trackingEvents = trackingInfo.events || [];
             const hasTracking = order.tracking_number && order.tracking_number.trim() !== '';
             const latestStanderdDesc = trackingInfo.latest_standerd_desc || '';
+            const trackingColor = hasTracking ? getTrackingColor(order.tracking_number) : null;
             
             // Doar Israel tracking info
             const doarTrackingInfo = order.doar_tracking_info || {};
@@ -116,7 +140,11 @@ function displayOrders(orders) {
                 <td>
                     <div class="tracking-cell">
                         ${hasTracking ? `
-                            <span class="tracking-number">${order.tracking_number}</span>
+                            <span class="tracking-number">
+                                <span class="tracking-badge" style="background:${trackingColor}; border-color:${trackingColor};">
+                                    ${order.tracking_number}
+                                </span>
+                            </span>
                             ${trackingInfo.carrier ? `<small class="carrier-name">${trackingInfo.carrier}</small>` : ''}
                         ` : '<span class="tracking-number">N/A</span>'}
                     </div>

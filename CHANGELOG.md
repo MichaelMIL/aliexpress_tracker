@@ -19,3 +19,6 @@ Entries are automatically prepended by `scripts/release.sh`.
 - Made the `version-badge` in the header a link to the GitHub repository.
 - Updated `scripts/release.sh` to create a GitHub release via `gh release create` (when the GitHub CLI is available) after tagging and pushing.
 - Added client-side version checking that compares the local build with the latest version on GitHub and highlights the badge when an update is available.
+- Added color-coded dots next to tracking numbers so identical tracking numbers share the same color for quick visual grouping.
+- Improved the tracking color generator to vary saturation/lightness for more noticeable differences between similar tracking numbers.
+- Display tracking numbers inside colored badges instead of dots for clearer grouping.
