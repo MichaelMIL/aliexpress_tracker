@@ -5,6 +5,7 @@ import json
 # File path for persistent storage
 ORDERS_FILE = 'orders.json'
 CONFIG_FILE = 'config.json'
+VERSION_FILE = 'VERSION'
 
 # Directory for storing product images
 IMAGES_DIR = os.path.join('static', 'images', 'products')
@@ -39,4 +40,14 @@ def set_doar_api_key(api_key):
     config = load_config()
     config['doar_israel_api_key'] = api_key
     save_config(config)
+
+def get_app_version():
+    """Read application version from VERSION file"""
+    if os.path.exists(VERSION_FILE):
+        try:
+            with open(VERSION_FILE, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        except IOError as e:
+            print(f"Error reading version file: {e}")
+    return "0.00.00"
 

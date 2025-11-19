@@ -27,13 +27,20 @@ th {
 
 #ordersTable th:nth-child(9),
 #ordersTable td:nth-child(9) {
-    width: 120px;
-    max-width: 120px;
+    width: 150px;
+    max-width: 150px;
     padding: 15px 8px;
 }
 
 #ordersTable th:nth-child(10),
 #ordersTable td:nth-child(10) {
+    width: 120px;
+    max-width: 120px;
+    padding: 15px 8px;
+}
+
+#ordersTable th:nth-child(11),
+#ordersTable td:nth-child(11) {
     width: 200px;
     max-width: 200px;
     padding: 15px 8px;
@@ -181,6 +188,23 @@ tr:hover {
 .last-update-date {
     font-size: 13px;
     color: #333;
+}
+
+.doar-delivery-cell {
+    font-size: 12px;
+    color: #333;
+}
+
+.doar-delivery-text {
+    font-weight: 600;
+}
+
+.delivery-type-איסוף-עצמי {
+    color: #0a58ca;
+}
+
+.delivery-type-שליח-עד-הבית {
+    color: #28a745;
 }
 
 .doar-status-cell {

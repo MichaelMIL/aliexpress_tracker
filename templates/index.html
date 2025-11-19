@@ -13,6 +13,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="version-badge">v{{ version or '0.00.00' }}</div>
             <h1>🛒 AliExpress Order Tracker</h1>
             <p>Track all your AliExpress orders in one place</p>
             <div style="display: flex; align-items: center; gap: 20px; margin-top: 15px; flex-wrap: wrap;">
@@ -101,13 +102,14 @@
                         <th>Status</th>
                         <th>Latest Update</th>
                         <th>Doar Israel Status</th>
+                        <th>Doar Israel Delivery Type</th>
                         <th>Last Update</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="ordersTableBody">
                     <tr>
-                        <td colspan="10" class="empty-state">
+                    <td colspan="11" class="empty-state">
                             <div>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>

@@ -122,6 +122,17 @@ function clearFilters() {
     applyFilters();
 }
 
+function escapeCsv(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    const stringValue = String(value);
+    if (/[",\n]/.test(stringValue)) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+}
+
 function exportOrders() {
     // Get current filtered/sorted orders
     const statusFilter = document.getElementById('statusFilter').value;
@@ -161,7 +172,11 @@ function exportOrders() {
         'Order Date',
         'Last Update Date',
         'Added Date',
-        'Carrier'
+        'Carrier',
+        'Doar Israel Status',
+        'Doar Israel Status Field',
+        'Doar Israel Delivery Type',
+        'Doar Israel Last Event'
     ];
     
     const csvRows = [headers.join(',')];
@@ -173,18 +188,27 @@ function exportOrders() {
         const carrier = trackingInfo.carrier || '';
         const lastUpdateDate = trackingInfo.last_update_date || '';
         
+        const doarInfo = order.doar_tracking_info || {};
+        const lastDoarEvent = (doarInfo.events && doarInfo.events.length > 0)
+            ? `${doarInfo.events[0].date || ''} - ${doarInfo.events[0].description || ''}`.trim()
+            : '';
+
         const row = [
-            order.id || '',
-            `"${(order.product_title || '').replace(/"/g, '""')}"`,
-            order.product_url || '',
-            order.product_id || '',
-            order.tracking_number || '',
-            status,
-            `"${latestUpdate.replace(/"/g, '""')}"`,
-            order.order_date || order.added_date || '',
-            lastUpdateDate,
-            order.added_date || '',
-            carrier
+            escapeCsv(order.id || ''),
+            escapeCsv(order.product_title || ''),
+            escapeCsv(order.product_url || ''),
+            escapeCsv(order.product_id || ''),
+            escapeCsv(order.tracking_number || ''),
+            escapeCsv(status),
+            escapeCsv(latestUpdate),
+            escapeCsv(order.order_date || order.added_date || ''),
+            escapeCsv(lastUpdateDate),
+            escapeCsv(order.added_date || ''),
+            escapeCsv(carrier),
+            escapeCsv(doarInfo.status || ''),
+            escapeCsv(doarInfo.status_field || ''),
+            escapeCsv(doarInfo.delivery_type || ''),
+            escapeCsv(lastDoarEvent)
         ];
         
         csvRows.push(row.join(','));

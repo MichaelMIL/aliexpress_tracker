@@ -152,6 +152,11 @@ function displayOrders(orders) {
                     </div>
                 </td>
                 <td>
+                    <div class="doar-delivery-cell">
+                        ${doarDeliveryType ? `<span class="doar-delivery-text delivery-type-${doarDeliveryType.replace(/\s+/g, '-')}">${doarDeliveryType}</span>` : '<span class="no-update">N/A</span>'}
+                    </div>
+                </td>
+                <td>
                     <div class="last-update-cell">
                         ${trackingInfo.last_update_date ? `
                             <span class="last-update-date" title="${trackingInfo.last_update_date}">${trackingInfo.last_update_date}</span>
