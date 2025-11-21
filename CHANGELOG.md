@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.10.00 - 2025-11-21
+
+- e1ae953 Ensure auto_update_interval_hours is initialized in config.json
+- 08a5adf Remove duplicate last_updates.json file
+- 8883498 Move last update times to separate app_data.json file
+- 1d452a5 Optimize tracking updates to deduplicate tracking numbers
+- 72d6013 Add auto-update scheduler and last update time tracking
 ## v1.09.00 - 2025-11-21
 
 - No commits recorded since the previous release.
