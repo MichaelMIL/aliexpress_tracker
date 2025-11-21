@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.09.00 - 2025-11-21
+
+- No commits recorded since the previous release.
 ## v1.08.00 - 2025-11-21
 
 - ec3d2f9 Fix cURL parser to extract cookies from -b flag
