@@ -2,6 +2,7 @@
 // Load orders on page load
 window.onload = function() {
     loadOrders();
+    startUpdateTimeInterval();
 };
 
 // Close modal when clicking outside

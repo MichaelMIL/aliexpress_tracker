@@ -68,6 +68,9 @@ async function refreshAllDoarTracking() {
             await loadOrders();
             applyFilters();
             
+            // Update last update times
+            await updateLastUpdateTimes();
+            
             setTimeout(() => {
                 button.textContent = originalText;
                 button.disabled = false;

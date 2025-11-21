@@ -72,6 +72,9 @@ async function refreshAllTracking() {
             await loadOrders();
             applyFilters(); // Reapply filters after bulk refresh
             
+            // Update last update times
+            await updateLastUpdateTimes();
+            
             // Reset button after 3 seconds
             setTimeout(() => {
                 button.textContent = originalText;

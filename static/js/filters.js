@@ -129,7 +129,7 @@ function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('sortBy').value = 'added_date_desc';
     document.getElementById('searchFilter').value = '';
-    document.getElementById('hideDelivered').checked = false;
+    document.getElementById('hideDelivered').checked = true;
     applyFilters();
 }
 

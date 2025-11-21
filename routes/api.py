@@ -6,7 +6,14 @@ from utils.images import download_and_save_image
 from utils.tracking import fetch_tracking_info, fetch_bulk_tracking_info
 from utils.aliexpress import extract_product_info
 from utils.doar_israel import fetch_doar_tracking_info
-from config import get_doar_api_key, set_doar_api_key
+from config import (
+    get_doar_api_key,
+    set_doar_api_key,
+    get_cainiao_last_update,
+    set_cainiao_last_update,
+    get_doar_last_update,
+    set_doar_last_update
+)
 
 api_bp = Blueprint('api', __name__)
 
@@ -218,6 +225,9 @@ def refresh_all_tracking():
                     })
         
         save_orders()
+        
+        # Update last update time for Cainiao
+        set_cainiao_last_update()
         
         print(f"Bulk update completed: {updated} updated, {failed} failed out of {len(orders_with_tracking)} total, {skipped_delivered} delivered orders skipped")
         
@@ -439,6 +449,9 @@ def refresh_all_doar_tracking():
         
         save_orders()
         
+        # Update last update time for Doar Israel
+        set_doar_last_update()
+        
         print(f"Doar Israel bulk update completed: {updated} updated, {failed} failed out of {len(orders_with_tracking)} total")
         
         return jsonify({
@@ -453,6 +466,24 @@ def refresh_all_doar_tracking():
         import traceback
         error_trace = traceback.format_exc()
         print(f"Error refreshing all Doar Israel tracking: {error_trace}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@api_bp.route('/auto-update/last-updates', methods=['GET'])
+def get_last_updates():
+    """Get the last update times for Cainiao and Doar Israel"""
+    try:
+        cainiao_last = get_cainiao_last_update()
+        doar_last = get_doar_last_update()
+        
+        return jsonify({
+            'success': True,
+            'cainiao_last_update': cainiao_last.isoformat() if cainiao_last else None,
+            'doar_last_update': doar_last.isoformat() if doar_last else None
+        })
+    except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)

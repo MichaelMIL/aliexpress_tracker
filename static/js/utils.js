@@ -91,3 +91,89 @@ function handleImageError(img) {
     img.style.opacity = '1.0'; // Make it clear it's a placeholder
 }
 
+function formatLastUpdateTime(dateString) {
+    if (!dateString) return 'Never';
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Invalid date';
+        
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffSeconds < 60) {
+            return 'Just now';
+        } else if (diffMinutes < 60) {
+            return `${diffMinutes} min ago`;
+        } else if (diffHours < 24) {
+            return `${diffHours}h ${diffMinutes % 60}m ago`;
+        } else if (diffDays < 7) {
+            return `${diffDays}d ${diffHours % 24}h ago`;
+        } else {
+            // Show full date and time for older updates
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    } catch (e) {
+        return 'Error';
+    }
+}
+
+async function updateLastUpdateTimes() {
+    const cainiaoElement = document.getElementById('cainiaoLastUpdate');
+    const doarElement = document.getElementById('doarLastUpdate');
+    
+    if (!cainiaoElement || !doarElement) return;
+    
+    try {
+        const response = await fetch('/api/auto-update/last-updates');
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.cainiao_last_update) {
+                const formatted = formatLastUpdateTime(data.cainiao_last_update);
+                cainiaoElement.textContent = formatted;
+                cainiaoElement.title = new Date(data.cainiao_last_update).toLocaleString();
+            } else {
+                cainiaoElement.textContent = 'Never';
+                cainiaoElement.title = 'No update has been performed yet';
+            }
+            
+            if (data.doar_last_update) {
+                const formatted = formatLastUpdateTime(data.doar_last_update);
+                doarElement.textContent = formatted;
+                doarElement.title = new Date(data.doar_last_update).toLocaleString();
+            } else {
+                doarElement.textContent = 'Never';
+                doarElement.title = 'No update has been performed yet';
+            }
+        } else {
+            cainiaoElement.textContent = 'Error';
+            doarElement.textContent = 'Error';
+        }
+    } catch (error) {
+        console.error('Error fetching last update times:', error);
+        cainiaoElement.textContent = 'Error';
+        doarElement.textContent = 'Error';
+    }
+}
+
+// Update the time display every minute
+let updateTimeInterval = null;
+function startUpdateTimeInterval() {
+    if (updateTimeInterval) {
+        clearInterval(updateTimeInterval);
+    }
+    updateLastUpdateTimes(); // Initial update
+    updateTimeInterval = setInterval(updateLastUpdateTimes, 60000); // Update every minute
+}
+

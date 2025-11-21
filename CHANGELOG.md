@@ -26,6 +26,11 @@ Entries are automatically prepended by `scripts/release.sh`.
 
 ## Unreleased
 
+- **Feature**: Added automatic background scheduler that updates both Cainiao and Doar Israel tracking every 6 hours (configurable via `auto_update_interval_hours` in `config.json`).
+- **Feature**: Added "Cainiao last update" and "Doar Israel last update" time displays next to "Total Orders" in the UI.
+- **Feature**: Last update times are now persistent in `config.json` and survive server restarts.
+- **Feature**: Last update times automatically refresh when manual bulk updates are triggered or when auto-updates run.
+- **Feature**: Update time display refreshes every minute and shows relative time (e.g., "5 min ago", "2h 30m ago").
 - **Fix**: Fixed cURL parser to properly extract cookies from `-b` or `--cookie` flags in addition to Cookie headers.
 - **Fix**: Fixed "Hide Delivered" checkbox functionality to properly filter out delivered orders from the table.
 - Enhanced `scripts/release.sh` to automatically capture commit history and prepend release notes to `CHANGELOG.md`.
