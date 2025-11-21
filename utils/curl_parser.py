@@ -41,8 +41,23 @@ def parse_curl_command(curl_command):
         if data_match:
             post_data = data_match.group(1)
     
-    # Extract cookies from Cookie header
-    if 'Cookie' in headers:
+    # Extract cookies from -b or --cookie flag (takes precedence over Cookie header)
+    # Pattern: -b 'cookie string' or --cookie 'cookie string'
+    cookie_flag_match = re.search(r"-[b]\s+['\"]([^'\"]+)['\"]|--cookie\s+['\"]([^'\"]+)['\"]", normalized)
+    if cookie_flag_match:
+        # Get the matched group (either group 1 or group 2)
+        cookie_string = cookie_flag_match.group(1) or cookie_flag_match.group(2)
+        if cookie_string:
+            # Clear existing cookies and parse from -b flag
+            cookies = {}
+            for cookie_pair in cookie_string.split(';'):
+                if '=' in cookie_pair:
+                    key, value = cookie_pair.split('=', 1)
+                    cookies[key.strip()] = value.strip()
+            # Also add to headers as Cookie for requests library
+            headers['Cookie'] = cookie_string
+    # Extract cookies from Cookie header (only if -b flag wasn't used)
+    elif 'Cookie' in headers:
         cookie_string = headers['Cookie']
         for cookie_pair in cookie_string.split(';'):
             if '=' in cookie_pair:
