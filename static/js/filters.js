@@ -25,6 +25,16 @@ function applyFilters() {
         });
     }
     
+    // Filter out delivered orders if checkbox is checked
+    const hideDelivered = document.getElementById('hideDelivered').checked;
+    if (hideDelivered) {
+        filtered = filtered.filter(order => {
+            const trackingInfo = order.tracking_info || {};
+            const status = trackingInfo.status || order.status || 'Pending';
+            return status.toLowerCase() !== 'delivered';
+        });
+    }
+    
     // Sort orders
     const sortBy = document.getElementById('sortBy').value;
     filtered.sort((a, b) => {
@@ -119,6 +129,7 @@ function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('sortBy').value = 'added_date_desc';
     document.getElementById('searchFilter').value = '';
+    document.getElementById('hideDelivered').checked = false;
     applyFilters();
 }
 
@@ -137,6 +148,7 @@ function exportOrders() {
     // Get current filtered/sorted orders
     const statusFilter = document.getElementById('statusFilter').value;
     const searchText = document.getElementById('searchFilter').value.toLowerCase().trim();
+    const hideDelivered = document.getElementById('hideDelivered').checked;
     
     let ordersToExport = [...allOrders];
     
@@ -157,6 +169,15 @@ function exportOrders() {
             return productTitle.includes(searchText) || 
                    trackingNumber.includes(searchText) || 
                    productId.includes(searchText);
+        });
+    }
+    
+    // Filter out delivered orders if checkbox is checked
+    if (hideDelivered) {
+        ordersToExport = ordersToExport.filter(order => {
+            const trackingInfo = order.tracking_info || {};
+            const status = trackingInfo.status || order.status || 'Pending';
+            return status.toLowerCase() !== 'delivered';
         });
     }
     

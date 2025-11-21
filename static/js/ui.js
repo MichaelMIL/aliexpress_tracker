@@ -30,7 +30,8 @@ function displayOrders(orders) {
         if (orders.length === 0) {
             // Check if filters are active
             const hasActiveFilters = document.getElementById('statusFilter').value || 
-                                    document.getElementById('searchFilter').value.trim();
+                                    document.getElementById('searchFilter').value.trim() ||
+                                    document.getElementById('hideDelivered').checked;
             const emptyMessage = hasActiveFilters 
                 ? 'No orders match your filters. Try adjusting your search criteria.'
                 : 'No orders yet. Add an order to get started!';
