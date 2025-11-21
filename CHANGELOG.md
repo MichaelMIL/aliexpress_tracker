@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.11.00 - 2025-11-21
+
+- 2a6b850 chore: bump version to v1.10.01
+- d647ba8 Fix Docker timezone configuration and healthcheck port
+- 7ca75d2 Remove app_data.json from git tracking
 ## v1.10.00 - 2025-11-21
 
 - e1ae953 Ensure auto_update_interval_hours is initialized in config.json
