@@ -56,6 +56,10 @@ def get_app_version():
 def get_auto_update_interval_hours():
     """Get the auto-update interval in hours from config (default: 6)"""
     config = load_config()
+    if 'auto_update_interval_hours' not in config:
+        # Initialize with default value if not present
+        config['auto_update_interval_hours'] = 6
+        save_config(config)
     return config.get('auto_update_interval_hours', 6)
 
 def set_auto_update_interval_hours(hours):
