@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.08.00 - 2025-11-21
+
+- ec3d2f9 Fix cURL parser to extract cookies from -b flag
+- f5f7244 chore: bump version to v1.07.02
+- 6180fd9 chore: bump version to v1.07.01
+- de2c9bf Fix Hide Delivered checkbox functionality
 ## v1.07.00 - 2025-11-19
 
 - 0f3fec5 Add colored tracking badges
