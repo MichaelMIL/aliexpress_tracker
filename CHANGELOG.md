@@ -26,6 +26,7 @@ Entries are automatically prepended by `scripts/release.sh`.
 
 ## Unreleased
 
+- **Optimization**: Deduplicate tracking numbers before API calls to prevent duplicate requests when multiple orders share the same tracking number. This applies to both Cainiao and Doar Israel bulk updates and auto-updates.
 - **Feature**: Added automatic background scheduler that updates both Cainiao and Doar Israel tracking every 6 hours (configurable via `auto_update_interval_hours` in `config.json`).
 - **Feature**: Added "Cainiao last update" and "Doar Israel last update" time displays next to "Total Orders" in the UI.
 - **Feature**: Last update times are now persistent in `config.json` and survive server restarts.

@@ -58,8 +58,10 @@ def perform_auto_update():
                 orders_with_tracking.append(o)
         
         if orders_with_tracking:
-            tracking_numbers = [o.get('tracking_number', '').strip() for o in orders_with_tracking]
-            bulk_results = fetch_bulk_tracking_info(tracking_numbers)
+            # Deduplicate tracking numbers to avoid duplicate API calls
+            unique_tracking_numbers = list(set([o.get('tracking_number', '').strip() for o in orders_with_tracking if o.get('tracking_number', '').strip()]))
+            print(f"[Auto-Update] Fetching Cainiao tracking for {len(unique_tracking_numbers)} unique tracking numbers (from {len(orders_with_tracking)} orders)")
+            bulk_results = fetch_bulk_tracking_info(unique_tracking_numbers)
             
             updated = 0
             for order in orders_with_tracking:
@@ -85,12 +87,24 @@ def perform_auto_update():
             orders_with_tracking = [o for o in orders if o.get('tracking_number') and o.get('tracking_number').strip()]
             
             if orders_with_tracking:
+                # Deduplicate tracking numbers to avoid duplicate API calls
+                unique_tracking_numbers = list(set([o.get('tracking_number', '').strip() for o in orders_with_tracking if o.get('tracking_number', '').strip()]))
+                print(f"[Auto-Update] Fetching Doar Israel tracking for {len(unique_tracking_numbers)} unique tracking numbers (from {len(orders_with_tracking)} orders)")
+                
+                # Fetch tracking info once per unique tracking number
+                tracking_results = {}
+                for tracking_number in unique_tracking_numbers:
+                    tracking_info = fetch_doar_tracking_info(tracking_number)
+                    if tracking_info:
+                        tracking_results[tracking_number] = tracking_info
+                
+                # Apply results to all orders with matching tracking numbers
                 updated = 0
                 for order in orders_with_tracking:
                     tracking_number = order.get('tracking_number', '').strip()
-                    if tracking_number:
-                        tracking_info = fetch_doar_tracking_info(tracking_number)
-                        if tracking_info and not tracking_info.get('error'):
+                    if tracking_number and tracking_number in tracking_results:
+                        tracking_info = tracking_results[tracking_number]
+                        if not tracking_info.get('error'):
                             if 'doar_tracking_info' not in order:
                                 order['doar_tracking_info'] = {}
                             order['doar_tracking_info'] = tracking_info

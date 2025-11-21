@@ -181,10 +181,11 @@ def refresh_all_tracking():
                 'message': f'No orders to update. {skipped_delivered} delivered orders skipped.' if skipped_delivered > 0 else 'No orders with tracking numbers found'
             })
         
-        tracking_numbers = [o.get('tracking_number', '').strip() for o in orders_with_tracking]
+        # Deduplicate tracking numbers to avoid duplicate API calls
+        unique_tracking_numbers = list(set([o.get('tracking_number', '').strip() for o in orders_with_tracking if o.get('tracking_number', '').strip()]))
         
-        print(f"Fetching tracking info for {len(tracking_numbers)} tracking numbers in bulk...")
-        bulk_results = fetch_bulk_tracking_info(tracking_numbers)
+        print(f"Fetching tracking info for {len(unique_tracking_numbers)} unique tracking numbers in bulk (from {len(orders_with_tracking)} orders)...")
+        bulk_results = fetch_bulk_tracking_info(unique_tracking_numbers)
         
         updated = 0
         failed = 0
@@ -419,6 +420,19 @@ def refresh_all_doar_tracking():
                 'message': 'No orders with tracking numbers found'
             })
         
+        # Deduplicate tracking numbers to avoid duplicate API calls
+        unique_tracking_numbers = list(set([o.get('tracking_number', '').strip() for o in orders_with_tracking if o.get('tracking_number', '').strip()]))
+        
+        print(f"Fetching Doar Israel tracking info for {len(unique_tracking_numbers)} unique tracking numbers (from {len(orders_with_tracking)} orders)...")
+        
+        # Fetch tracking info once per unique tracking number
+        tracking_results = {}
+        for tracking_number in unique_tracking_numbers:
+            tracking_info = fetch_doar_tracking_info(tracking_number)
+            if tracking_info:
+                tracking_results[tracking_number] = tracking_info
+        
+        # Apply results to all orders with matching tracking numbers
         updated = 0
         failed = 0
         results = []
@@ -426,25 +440,34 @@ def refresh_all_doar_tracking():
         for order in orders_with_tracking:
             tracking_number = order.get('tracking_number', '').strip()
             if tracking_number:
-                tracking_info = fetch_doar_tracking_info(tracking_number)
-                if tracking_info and not tracking_info.get('error'):
-                    if 'doar_tracking_info' not in order:
-                        order['doar_tracking_info'] = {}
-                    order['doar_tracking_info'] = tracking_info
-                    updated += 1
-                    results.append({
-                        'order_id': order['id'],
-                        'success': True,
-                        'tracking_number': tracking_number
-                    })
+                if tracking_number in tracking_results:
+                    tracking_info = tracking_results[tracking_number]
+                    if not tracking_info.get('error'):
+                        if 'doar_tracking_info' not in order:
+                            order['doar_tracking_info'] = {}
+                        order['doar_tracking_info'] = tracking_info
+                        updated += 1
+                        results.append({
+                            'order_id': order['id'],
+                            'success': True,
+                            'tracking_number': tracking_number
+                        })
+                    else:
+                        failed += 1
+                        error_msg = tracking_info.get('error', 'Failed to fetch tracking info')
+                        results.append({
+                            'order_id': order['id'],
+                            'success': False,
+                            'tracking_number': tracking_number,
+                            'error': error_msg
+                        })
                 else:
                     failed += 1
-                    error_msg = tracking_info.get('error', 'Failed to fetch tracking info') if tracking_info else 'No tracking info returned'
                     results.append({
                         'order_id': order['id'],
                         'success': False,
                         'tracking_number': tracking_number,
-                        'error': error_msg
+                        'error': 'Tracking number not found in results'
                     })
         
         save_orders()

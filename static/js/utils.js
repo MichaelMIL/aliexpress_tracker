@@ -174,6 +174,6 @@ function startUpdateTimeInterval() {
         clearInterval(updateTimeInterval);
     }
     updateLastUpdateTimes(); // Initial update
-    updateTimeInterval = setInterval(updateLastUpdateTimes, 60000); // Update every minute
+    updateTimeInterval = setInterval(updateLastUpdateTimes, 6000000); // Update every minute
 }
 
