@@ -17,6 +17,7 @@ Entries are automatically prepended by `scripts/release.sh`.
 
 ## Unreleased
 
+- **Fix**: Fixed cURL parser to properly extract cookies from `-b` or `--cookie` flags in addition to Cookie headers.
 - **Fix**: Fixed "Hide Delivered" checkbox functionality to properly filter out delivered orders from the table.
 - Enhanced `scripts/release.sh` to automatically capture commit history and prepend release notes to `CHANGELOG.md`.
 - Added `.cursor/rules` to enforce documenting changes in `CHANGELOG.md` prior to every commit.

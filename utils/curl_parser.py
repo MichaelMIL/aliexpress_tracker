@@ -43,7 +43,7 @@ def parse_curl_command(curl_command):
     
     # Extract cookies from -b or --cookie flag (takes precedence over Cookie header)
     # Pattern: -b 'cookie string' or --cookie 'cookie string'
-    cookie_flag_match = re.search(r"-[b]\s+['\"]([^'\"]+)['\"]|--cookie\s+['\"]([^'\"]+)['\"]", normalized)
+    cookie_flag_match = re.search(r"-b\s+['\"]([^'\"]+)['\"]|--cookie\s+['\"]([^'\"]+)['\"]", normalized)
     if cookie_flag_match:
         # Get the matched group (either group 1 or group 2)
         cookie_string = cookie_flag_match.group(1) or cookie_flag_match.group(2)
