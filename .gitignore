@@ -21,6 +21,10 @@ static/images/products/
 # config.json
 config.json
 
+# Runtime data
+app_data.json
+*.json
+
 # IDE
 .vscode/
 .idea/
