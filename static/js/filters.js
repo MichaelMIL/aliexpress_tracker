@@ -1,4 +1,21 @@
 /* Filtering and Sorting Functions */
+function isDoarDeliveredStatus(status) {
+    if (!status || typeof status !== 'string') {
+        return false;
+    }
+    return status.trim() === 'נמסר';
+}
+
+function isOrderConsideredDelivered(order) {
+    const trackingInfo = order.tracking_info || {};
+    const primaryStatus = (trackingInfo.status || order.status || '').toLowerCase();
+    if (primaryStatus === 'delivered') {
+        return true;
+    }
+    const doarStatus = (order.doar_tracking_info || {}).status || '';
+    return isDoarDeliveredStatus(doarStatus);
+}
+
 function applyFilters() {
     let filtered = [...allOrders];
     
@@ -28,11 +45,7 @@ function applyFilters() {
     // Filter out delivered orders if checkbox is checked
     const hideDelivered = document.getElementById('hideDelivered').checked;
     if (hideDelivered) {
-        filtered = filtered.filter(order => {
-            const trackingInfo = order.tracking_info || {};
-            const status = trackingInfo.status || order.status || 'Pending';
-            return status.toLowerCase() !== 'delivered';
-        });
+        filtered = filtered.filter(order => !isOrderConsideredDelivered(order));
     }
     
     // Sort orders
@@ -174,11 +187,7 @@ function exportOrders() {
     
     // Filter out delivered orders if checkbox is checked
     if (hideDelivered) {
-        ordersToExport = ordersToExport.filter(order => {
-            const trackingInfo = order.tracking_info || {};
-            const status = trackingInfo.status || order.status || 'Pending';
-            return status.toLowerCase() !== 'delivered';
-        });
+        ordersToExport = ordersToExport.filter(order => !isOrderConsideredDelivered(order));
     }
     
     // Convert to CSV

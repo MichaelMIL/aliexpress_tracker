@@ -38,6 +38,7 @@ Entries are automatically prepended by `scripts/release.sh`.
 
 ## Unreleased
 
+- **Fix**: Treat Doar Israel status `נמסר` as delivered so the "Hide Delivered" filter also hides those orders.
 - **Fix**: Configure Docker container timezone to use Asia/Jerusalem (fixes 2-hour time difference issue).
 - **Fix**: Correct healthcheck port in docker-compose.yml from 8000 to 8004.
 - **Fix**: Ensure `auto_update_interval_hours` is automatically initialized in `config.json` if missing (defaults to 6 hours).
