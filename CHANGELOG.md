@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.12.00 - 2025-11-24
+
+- da651e7 Treat Doar delivered status as delivered filter
 ## v1.11.00 - 2025-11-21
 
 - 2a6b850 chore: bump version to v1.10.01
